@@ -1,9 +1,9 @@
-package org.lingg.learn.netty.nio.pool;
+package org.lingg.learn.netty3.nio.pool;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.lingg.learn.netty.nio.NioServerBoss;
-import org.lingg.learn.netty.nio.NioServerWorker;
+import org.lingg.learn.netty3.nio.NioServerBoss;
+import org.lingg.learn.netty3.nio.NioServerWorker;
 /**
  * selector线程管理者
  * @author -琴兽-

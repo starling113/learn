@@ -1,4 +1,4 @@
-package org.lingg.learn.netty.nio.pool;
+package org.lingg.learn.netty3.nio.pool;
 
 import java.nio.channels.ServerSocketChannel;
 /**

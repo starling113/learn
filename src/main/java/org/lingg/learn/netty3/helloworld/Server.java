@@ -1,4 +1,4 @@
-package org.lingg.learn.netty.helloworld;
+package org.lingg.learn.netty3.helloworld;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;

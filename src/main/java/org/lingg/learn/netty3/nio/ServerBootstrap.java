@@ -1,10 +1,10 @@
-package org.lingg.learn.netty.nio;
+package org.lingg.learn.netty3.nio;
 
 import java.net.SocketAddress;
 import java.nio.channels.ServerSocketChannel;
 
-import org.lingg.learn.netty.nio.pool.Boss;
-import org.lingg.learn.netty.nio.pool.NioSelectorRunnablePool;
+import org.lingg.learn.netty3.nio.pool.Boss;
+import org.lingg.learn.netty3.nio.pool.NioSelectorRunnablePool;
 
 /**
  * 服务类

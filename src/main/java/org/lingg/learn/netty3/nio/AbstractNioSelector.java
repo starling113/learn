@@ -1,4 +1,4 @@
-package org.lingg.learn.netty.nio;
+package org.lingg.learn.netty3.nio;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.lingg.learn.netty.nio.pool.NioSelectorRunnablePool;
+import org.lingg.learn.netty3.nio.pool.NioSelectorRunnablePool;
 
 /**
  * 抽象selector线程类

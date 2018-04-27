@@ -1,4 +1,4 @@
-package org.lingg.learn.netty.nio;
+package org.lingg.learn.netty3.nio;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -10,9 +10,9 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import org.lingg.learn.netty.nio.pool.Boss;
-import org.lingg.learn.netty.nio.pool.NioSelectorRunnablePool;
-import org.lingg.learn.netty.nio.pool.Worker;
+import org.lingg.learn.netty3.nio.pool.Boss;
+import org.lingg.learn.netty3.nio.pool.NioSelectorRunnablePool;
+import org.lingg.learn.netty3.nio.pool.Worker;
 
 /**
  * boss实现类

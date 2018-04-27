@@ -1,4 +1,4 @@
-package org.lingg.learn.netty.nio;
+package org.lingg.learn.netty3.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10,8 +10,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import org.lingg.learn.netty.nio.pool.NioSelectorRunnablePool;
-import org.lingg.learn.netty.nio.pool.Worker;
+import org.lingg.learn.netty3.nio.pool.NioSelectorRunnablePool;
+import org.lingg.learn.netty3.nio.pool.Worker;
 
 /**
  * worker实现类
