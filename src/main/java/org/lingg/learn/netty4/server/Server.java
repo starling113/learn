@@ -10,6 +10,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import org.lingg.learn.netty4.Const;
 
 /**
  * netty5服务端
@@ -23,7 +24,7 @@ public class Server {
 		ServerBootstrap bootstrap = new ServerBootstrap();
 		
 		//boss和worker
-		EventLoopGroup boss = new NioEventLoopGroup();
+		EventLoopGroup boss = new NioEventLoopGroup(); // 监听端口的线程
 		EventLoopGroup worker = new NioEventLoopGroup();
 		
 		try {
@@ -54,7 +55,7 @@ public class Server {
 			bootstrap.childOption(ChannelOption.TCP_NODELAY, true);//socketchannel的设置,关闭延迟发送
 			
 			//绑定端口
-			ChannelFuture future = bootstrap.bind(10101);
+			ChannelFuture future = bootstrap.bind(Const.serverPort);
 			
 			System.out.println("start");
 			

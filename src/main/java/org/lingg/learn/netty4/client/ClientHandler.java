@@ -9,9 +9,13 @@ import io.netty.channel.SimpleChannelInboundHandler;
  */
 public class ClientHandler extends SimpleChannelInboundHandler<String> {
 
-	@Override
 	protected void messageReceived(ChannelHandlerContext ctx, String msg) throws Exception {
+
 		System.out.println("客户端收到消息:"+msg);
 	}
 
+	@Override
+	protected void channelRead0(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
+		messageReceived(channelHandlerContext,s);
+	}
 }

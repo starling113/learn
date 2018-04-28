@@ -13,6 +13,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import org.lingg.learn.netty4.Const;
 
 /**
  * 多连接客户端
@@ -35,7 +36,9 @@ public class MultClient {
 	 * 引用计数
 	 */
 	private final AtomicInteger index = new AtomicInteger();
-	
+
+
+
 	/**
 	 * 初始化
 	 * @param count
@@ -63,7 +66,7 @@ public class MultClient {
 		});
 		
 		for(int i=1; i<=count; i++){
-			ChannelFuture future = bootstrap.connect("192.168.0.103", 10101);
+			ChannelFuture future = bootstrap.connect(Const.serverIp, Const.serverPort);
 			channels.add(future.channel());
 		}
 	}
@@ -100,7 +103,7 @@ public class MultClient {
 				return ;
 			}
 			
-			Channel newChannel = bootstrap.connect("192.168.0.103", 10101).channel();
+			Channel newChannel = bootstrap.connect(Const.serverIp, Const.serverPort).channel();
 			channels.set(channels.indexOf(channel), newChannel);
 		}
 	}

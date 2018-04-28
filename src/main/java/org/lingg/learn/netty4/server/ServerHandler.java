@@ -9,13 +9,11 @@ import io.netty.channel.SimpleChannelInboundHandler;
  */
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
-	@Override
 	protected void messageReceived(ChannelHandlerContext ctx, String msg) throws Exception {
+        System.out.println("channelRead0 : " + msg);
 
-		System.out.println(msg);
-		
-		ctx.channel().writeAndFlush("hi");
-		ctx.writeAndFlush("hi");
+//       ctx.channel().writeAndFlush("hi");
+        ctx.writeAndFlush("服务器收到"+ctx.channel().remoteAddress()+"发送的消息："+msg); //返回消息
 	}
 
 	/**
@@ -41,6 +39,15 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 		cause.printStackTrace();
 	}
-	
-	
+
+    /**
+     * netty4 接收到消息 netty5中方法修改成了messageReceived
+     * @param channelHandlerContext
+     * @param s
+     * @throws Exception
+     */
+	@Override
+	protected void channelRead0(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
+		messageReceived(channelHandlerContext,s);
+	}
 }
