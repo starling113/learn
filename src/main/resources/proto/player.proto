@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+option java_package = "org.lingg.learn.protobuf";
+option java_outer_classname = "PlayerModule";
+
+message PBPlayer{
+	required int64 playerId = 1;
+	
+	optional int32 age = 2;
+	
+	optional string name = 3;
+	
+	repeated int32 skills = 4;
+}
+
+message PBResource{
+	optional int64 gold = 1;
+	
+	optional int32 energy = 2;
+}
