@@ -1,9 +1,10 @@
 package org.lingg.learn.protobuf.serial;
 
-import java.util.Arrays;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
+
+import java.util.Arrays;
 
 public class Test3 {
 
@@ -17,9 +18,7 @@ public class Test3 {
 		buffer.readBytes(bytes);
 		
 		System.out.println(Arrays.toString(bytes));
-		
-		"abc".getBytes();
-		
+
 		//================================================
 		ChannelBuffer wrappedBuffer = ChannelBuffers.wrappedBuffer(bytes);
 		System.out.println(wrappedBuffer.readInt());

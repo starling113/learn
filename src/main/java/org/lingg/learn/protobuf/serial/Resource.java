@@ -1,6 +1,6 @@
 package org.lingg.learn.protobuf.serial;
 
-import com.cn.core.Serializer;
+import org.lingg.learn.protobuf.serial.core.Serializer;
 
 public class Resource extends Serializer {
 	

@@ -9,7 +9,7 @@ public class Test2 {
 		int id = 101;
 		int age = 21;
 		
-		ByteBuffer buffer = ByteBuffer.allocate(8);
+		ByteBuffer buffer = ByteBuffer.allocate(8); //容纳数据固定
 		buffer.putInt(id);
 		buffer.putInt(age);
 		byte[] array = buffer.array();

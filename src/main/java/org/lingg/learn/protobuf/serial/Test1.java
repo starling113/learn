@@ -24,7 +24,7 @@ public class Test1 {
 		byte[] idBytes = new byte[4];
 		arrayInputStream.read(idBytes);
 		System.out.println("id:" + bytes2int(idBytes));
-		
+
 		byte[] ageBytes = new byte[4];
 		arrayInputStream.read(ageBytes);
 		System.out.println("age:" + bytes2int(ageBytes));
