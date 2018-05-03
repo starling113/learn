@@ -5,7 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class Test1 {
+public class ByteArrayInputStreamSerialTest {
 
 	public static void main(String[] args) throws IOException {
 		int id = 101;

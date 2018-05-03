@@ -3,7 +3,7 @@ package org.lingg.learn.protobuf.serial;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class Test2 {
+public class ByteBufferSerialTest {
 
 	public static void main(String[] args) {
 		int id = 101;

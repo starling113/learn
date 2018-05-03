@@ -6,7 +6,7 @@ import org.jboss.netty.buffer.ChannelBuffers;
 
 import java.util.Arrays;
 
-public class Test3 {
+public class ChannelBufferSerialTest {
 
 	public static void main(String[] args) {
 
