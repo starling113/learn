@@ -38,7 +38,7 @@ public class Server {
 			public ChannelPipeline getPipeline() throws Exception {
 
 				ChannelPipeline pipeline = Channels.pipeline();
-				pipeline.addLast("decoder", new StringDecoder());
+				pipeline.addLast("pipeline", new StringDecoder());
 				pipeline.addLast("encoder", new StringEncoder());
 				pipeline.addLast("helloHandler", new HelloHandler());
 				return pipeline;

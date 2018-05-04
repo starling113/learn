@@ -1,19 +1,16 @@
-package org.lingg.learn.netty3.heart;
+package org.lingg.learn.decoder_and_encoder.test.server;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.codec.string.StringDecoder;
-import org.jboss.netty.handler.codec.string.StringEncoder;
-import org.jboss.netty.handler.timeout.IdleStateHandler;
-import org.jboss.netty.util.HashedWheelTimer;
-
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import org.lingg.learn.decoder_and_encoder.codc.RequestDecoder;
+import org.lingg.learn.decoder_and_encoder.codc.ResponseEncoder;
 
 /**
  * netty服务端入门
@@ -41,10 +38,9 @@ public class Server {
 			public ChannelPipeline getPipeline() throws Exception {
 
 				ChannelPipeline pipeline = Channels.pipeline();
-				pipeline.addLast("idle", new IdleStateHandler(new HashedWheelTimer(), 5 , 5 , 10, TimeUnit.SECONDS));
-				pipeline.addLast("pipeline", new StringDecoder());
-				pipeline.addLast("encoder", new StringEncoder());
-				pipeline.addLast("helloHandler", new IdleHandler());
+				pipeline.addLast("pipeline", new RequestDecoder());
+				pipeline.addLast("encoder", new ResponseEncoder());
+				pipeline.addLast("helloHandler", new ServerHandler());
 				return pipeline;
 			}
 		});
