@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-option java_package = "org.lingg.learn.protobuf";
+option java_package = "org.lingg.learn.netty4all.protobuf";
 option java_outer_classname = "PlayerModule";
 
 message PBPlayer{
