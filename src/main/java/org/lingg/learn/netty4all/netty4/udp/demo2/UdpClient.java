@@ -17,7 +17,7 @@ import java.net.InetSocketAddress;
  * @version 创建时间：2016年11月18日 下午9:00:11
  * @function 未添加
  */
-public class ChineseProverbClient {
+public class UdpClient {
     public void run(int port) throws Exception {
 
         EventLoopGroup group = new NioEventLoopGroup();
@@ -45,6 +45,6 @@ public class ChineseProverbClient {
     public static void main(String[] args) throws Exception {
         int port = 8080;
 
-        new ChineseProverbClient().run(port);
+        new UdpClient().run(port);
     }
 }

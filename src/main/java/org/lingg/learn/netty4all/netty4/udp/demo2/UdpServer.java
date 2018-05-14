@@ -11,7 +11,7 @@ import io.netty.channel.socket.nio.NioDatagramChannel;
  * @version 创建时间：2016年11月18日 下午8:38:30
  * @function 未添加
  */
-public class ChineseProverbServer {
+public class UdpServer {
     public void run(int port) throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
         Bootstrap b = new Bootstrap();
@@ -24,6 +24,6 @@ public class ChineseProverbServer {
 
     public static void main(String[] args) throws Exception {
         int port = 8080;
-        new ChineseProverbServer().run(port);
+        new UdpServer().run(port);
     }
 }
