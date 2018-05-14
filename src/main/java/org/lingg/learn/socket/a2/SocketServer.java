@@ -27,7 +27,7 @@ public class SocketServer {
     System.out.println("get message from client: " + sb);
 
     OutputStream outputStream = socket.getOutputStream();
-    outputStream.write("Hello Client,I get the message.".getBytes("UTF-8"));
+    outputStream.write("Hello TcpClient,I get the message.".getBytes("UTF-8"));
 
     inputStream.close();
     outputStream.close();
