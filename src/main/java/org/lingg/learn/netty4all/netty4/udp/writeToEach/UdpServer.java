@@ -1,4 +1,4 @@
-package org.lingg.learn.netty4all.netty4.udp.demo2;
+package org.lingg.learn.netty4all.netty4.udp.writeToEach;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelOption;

@@ -1,4 +1,4 @@
-package org.lingg.learn.netty4all.netty4.udp.demo2;
+package org.lingg.learn.netty4all.netty4.udp.writeToEach;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
