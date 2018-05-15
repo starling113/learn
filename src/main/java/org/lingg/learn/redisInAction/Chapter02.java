@@ -187,7 +187,7 @@ public class Chapter02 {
         if (item != null) {
             conn.zadd("viewed:" + token, timestamp, item);
             conn.zremrangeByRank("viewed:" + token, 0, -26); //裁剪用户的浏览记录
-            conn.zincrby("viewed:", -1, item);
+            conn.zincrby("viewed:", -1, item); //商品浏览次数，每次减1，值越小，排序越靠前
         }
     }
 
@@ -235,7 +235,7 @@ public class Chapter02 {
             if (itemId == null || isDynamic(params)) {
                 return false;
             }
-            Long rank = conn.zrank("viewed:", itemId);
+            Long rank = conn.zrank("viewed:", itemId); //在有序列表中的序号
             return rank != null && rank < 10000;
         } catch (MalformedURLException mue) {
             return false;
