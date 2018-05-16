@@ -1,4 +1,4 @@
-package org.lingg.learn.redisInAction;
+package org.lingg.learn.redisInAction.book;
 
 import org.javatuples.Pair;
 import redis.clients.jedis.Jedis;

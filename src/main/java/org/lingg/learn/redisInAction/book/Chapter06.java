@@ -1,4 +1,4 @@
-package org.lingg.learn.redisInAction;
+package org.lingg.learn.redisInAction.book;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

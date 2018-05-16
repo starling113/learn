@@ -1,4 +1,4 @@
-package org.lingg.learn.redisInAction;
+package org.lingg.learn.redisInAction.book;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
@@ -11,13 +11,17 @@ import java.util.Map;
 import java.util.Set;
 
 public class Chapter04 {
+
+    private static String redisHost = "192.168.163.130";
+    private static int redisDbIndex = 14;
+
     public static final void main(String[] args) {
         new Chapter04().run();
     }
 
     public void run() {
-        Jedis conn = new Jedis("localhost");
-        conn.select(15);
+        Jedis conn = new Jedis(redisHost);
+        conn.select(redisDbIndex);
 
         testListItem(conn, false);
         testPurchaseItem(conn);

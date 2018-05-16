@@ -1,4 +1,4 @@
-package org.lingg.learn.redisInAction;
+package org.lingg.learn.redisInAction.mytest;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

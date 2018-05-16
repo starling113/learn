@@ -1,4 +1,4 @@
-package org.lingg.learn.redisInAction;
+package org.lingg.learn.redisInAction.book;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ZParams;
