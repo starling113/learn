@@ -109,14 +109,14 @@ public class Chapter04 {
 
         while (System.currentTimeMillis() < end) {
             conn.watch(inventory);
-            if (!conn.sismember(inventory, itemId)){
+            if (!conn.sismember(inventory, itemId)){ // 监视商品是否还在用户包裹中
                 conn.unwatch();
                 return false;
             }
 
             Transaction trans = conn.multi();
-            trans.zadd("market:", price, item);
-            trans.srem(inventory, itemId);
+            trans.zadd("market:", price, item); //添加到商品市场
+            trans.srem(inventory, itemId); // 用户包裹中商品移除
             List<Object> results = trans.exec();
             // null response indicates that the transaction was aborted due to
             // the watched key changing.
