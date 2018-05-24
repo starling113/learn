@@ -13,25 +13,23 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class Chapter06 {
-    public static final void main(String[] args)
-        throws Exception
-    {
+    private static final String VALID_CHARACTERS = "`abcdefghijklmnopqrstuvwxyz{";
+
+    public static  void main(String[] args) throws Exception {
         new Chapter06().run();
     }
 
-    public void run()
-        throws InterruptedException, IOException
-    {
-        Jedis conn = new Jedis("localhost");
-        conn.select(15);
+    public void run() throws Exception {
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
 
-        testAddUpdateContact(conn);
-        testAddressBookAutocomplete(conn);
-        testDistributedLocking(conn);
-        testCountingSemaphore(conn);
-        testDelayedTasks(conn);
-        testMultiRecipientMessaging(conn);
-        testFileDistribution(conn);
+//        testAddUpdateContact(conn);
+//        testAddressBookAutocomplete(conn);
+//        testDistributedLocking(conn);// 分布式锁
+        testCountingSemaphore(conn);// 信号量
+//        testDelayedTasks(conn);
+//        testMultiRecipientMessaging(conn);
+//        testFileDistribution(conn);
     }
 
     public void testAddUpdateContact(Jedis conn) {
@@ -39,12 +37,12 @@ public class Chapter06 {
         conn.del("recent:user");
 
         System.out.println("Let's add a few contacts...");
-        for (int i = 0; i < 10; i++){
-            addUpdateContact(conn, "user", "contact-" + ((int)Math.floor(i / 3)) + '-' + i);
+        for (int i = 0; i < 10; i++) {
+            addUpdateContact(conn, "user", "contact-" + ((int) Math.floor(i / 3)) + '-' + i);
         }
         System.out.println("Current recently contacted contacts");
         List<String> contacts = conn.lrange("recent:user", 0, -1);
-        for(String contact : contacts){
+        for (String contact : contacts) {
             System.out.println("  " + contact);
         }
         assert contacts.size() >= 10;
@@ -52,9 +50,9 @@ public class Chapter06 {
 
         System.out.println("Let's pull one of the older ones up to the front");
         addUpdateContact(conn, "user", "contact-1-4");
-        contacts = conn.lrange("recent:user", 0, 2);
+        contacts = conn.lrange("recent:user", 0, 2);// 取前3个
         System.out.println("New top-3 contacts:");
-        for(String contact : contacts){
+        for (String contact : contacts) {
             System.out.println("  " + contact);
         }
         assert "contact-1-4".equals(contacts.get(0));
@@ -64,7 +62,7 @@ public class Chapter06 {
         removeContact(conn, "user", "contact-2-6");
         contacts = conn.lrange("recent:user", 0, -1);
         System.out.println("New contacts:");
-        for(String contact : contacts){
+        for (String contact : contacts) {
             System.out.println("  " + contact);
         }
         assert contacts.size() >= 9;
@@ -72,56 +70,53 @@ public class Chapter06 {
 
         System.out.println("And let's finally autocomplete on ");
         List<String> all = conn.lrange("recent:user", 0, -1);
-        contacts = fetchAutocompleteList(conn, "user", "c");
-        assert all.equals(contacts);
-        List<String> equiv = new ArrayList<String>();
-        for (String contact : all){
-            if (contact.startsWith("contact-2-")){
+        contacts = fetchAutocompleteList(conn, "user", "contact-");
+        System.out.println("all.equals(contacts) : " + all.equals(contacts));
+        List<String> equiv = new ArrayList<>();
+        for (String contact : all) {
+            if (contact.startsWith("contact-2-")) {
                 equiv.add(contact);
             }
         }
-        contacts = fetchAutocompleteList(conn, "user", "contact-2-");
-        Collections.sort(equiv);
+        contacts = fetchAutocompleteList(conn, "user", "contact-2-"); // 获取“contact-2-”开头的所有人
+        Collections.sort(equiv); // contact-2-XXX
         Collections.sort(contacts);
-        assert equiv.equals(contacts);
+        System.out.println(equiv.equals(contacts));
         conn.del("recent:user");
     }
 
     public void testAddressBookAutocomplete(Jedis conn) {
         System.out.println("\n----- testAddressBookAutocomplete -----");
         conn.del("members:test");
-        System.out.println("the start/end range of 'abc' is: " +
-            Arrays.toString(findPrefixRange("abc")));
+        System.out.println("the start/end range of 'abc' is: " + Arrays.toString(findPrefixRange("abc")));
         System.out.println();
 
         System.out.println("Let's add a few people to the guild");
-        for (String name : new String[]{"jeff", "jenny", "jack", "jennifer"}){
+        for (String name : new String[]{"jeff", "jenny", "jack", "jennifer"}) {
             joinGuild(conn, "test", name);
         }
         System.out.println();
         System.out.println("now let's try to find users with names starting with 'je':");
         Set<String> r = autocompleteOnPrefix(conn, "test", "je");
-        System.out.println(r);
-        assert r.size() == 3;
+        System.out.println("prefix je : "+r);
+        System.out.println(r.size() == 3);
 
         System.out.println("jeff just left to join a different guild...");
         leaveGuild(conn, "test", "jeff");
         r = autocompleteOnPrefix(conn, "test", "je");
         System.out.println(r);
-        assert r.size() == 2;
+        System.out.println(r.size() == 2);
         conn.del("members:test");
     }
 
-    public void testDistributedLocking(Jedis conn)
-        throws InterruptedException
-    {
-        System.out.println("\n----- testDistributedLocking -----");
+    public void testDistributedLocking(Jedis conn) throws InterruptedException {
+        System.out.println("\n----- testDistributedLocking 分布式锁 -----");
         conn.del("lock:testlock");
         System.out.println("Getting an initial lock...");
-        assert acquireLockWithTimeout(conn, "testlock", 1000, 1000) != null;
+        System.out.println("第一次获得锁："+ acquireLockWithTimeout(conn, "testlock", 1000, 1000));
         System.out.println("Got it!");
         System.out.println("Trying to get it again without releasing the first one...");
-        assert acquireLockWithTimeout(conn, "testlock", 10, 1000) == null;
+        System.out.println("10毫秒后获得锁（前一个锁还没释放）："+ acquireLockWithTimeout(conn, "testlock", 10, 1000));
         System.out.println("Failed to get it!");
         System.out.println();
 
@@ -129,23 +124,21 @@ public class Chapter06 {
         Thread.sleep(2000);
         System.out.println("Getting the lock again...");
         String lockId = acquireLockWithTimeout(conn, "testlock", 1000, 1000);
-        assert lockId != null;
+        System.out.println("等2秒再次获得锁 lockId = " + lockId);
         System.out.println("Got it!");
         System.out.println("Releasing the lock...");
-        assert releaseLock(conn, "testlock", lockId);
+        System.out.println("释放锁"+lockId+" 结果：" +  releaseLock(conn, "testlock", lockId));
         System.out.println("Released it...");
         System.out.println();
 
         System.out.println("Acquiring it again...");
-        assert acquireLockWithTimeout(conn, "testlock", 1000, 1000) != null;
+        System.out.println("再次获得锁 lockId = " + acquireLockWithTimeout(conn, "testlock", 1000, 1000) );
         System.out.println("Got it!");
         conn.del("lock:testlock");
     }
 
-    public void testCountingSemaphore(Jedis conn)
-        throws InterruptedException
-    {
-        System.out.println("\n----- testCountingSemaphore -----");
+    public void testCountingSemaphore(Jedis conn) throws InterruptedException {
+        System.out.println("\n----- testCountingSemaphore 信号量-----");
         conn.del("testsem", "testsem:owner", "testsem:counter");
         System.out.println("Getting 3 initial semaphores with a limit of 3...");
         for (int i = 0; i < 3; i++) {
@@ -175,13 +168,11 @@ public class Chapter06 {
         conn.del("testsem", "testsem:owner", "testsem:counter");
     }
 
-    public void testDelayedTasks(Jedis conn)
-        throws InterruptedException
-    {
+    public void testDelayedTasks(Jedis conn) throws InterruptedException {
         System.out.println("\n----- testDelayedTasks -----");
         conn.del("queue:tqueue", "delayed:");
         System.out.println("Let's start some regular and delayed tasks...");
-        for (long delay : new long[]{0, 500, 0, 1500}){
+        for (long delay : new long[]{0, 500, 0, 1500}) {
             assert executeLater(conn, "tqueue", "testfn", new ArrayList<String>(), delay) != null;
         }
         long r = conn.llen("queue:tqueue");
@@ -213,7 +204,7 @@ public class Chapter06 {
         recipients.add("jenny");
         String chatId = createChat(conn, "joe", recipients, "message 1");
         System.out.println("Now let's send a few messages...");
-        for (int i = 2; i < 5; i++){
+        for (int i = 2; i < 5; i++) {
             sendMessage(conn, chatId, "joe", "message " + i);
         }
         System.out.println();
@@ -224,10 +215,10 @@ public class Chapter06 {
         System.out.println("They are the same? " + r1.equals(r2));
         assert r1.equals(r2);
         System.out.println("Those messages are:");
-        for(ChatMessages chat : r1){
+        for (ChatMessages chat : r1) {
             System.out.println("  chatId: " + chat.chatId);
             System.out.println("    messages:");
-            for(Map<String,Object> message : chat.messages){
+            for (Map<String, Object> message : chat.messages) {
                 System.out.println("      " + message);
             }
         }
@@ -235,20 +226,18 @@ public class Chapter06 {
         conn.del("ids:chat:", "msgs:1", "ids:1", "seen:joe", "seen:jeff", "seen:jenny");
     }
 
-    public void testFileDistribution(Jedis conn)
-        throws InterruptedException, IOException
-    {
+    public void testFileDistribution(Jedis conn) throws InterruptedException, IOException {
         System.out.println("\n----- testFileDistribution -----");
         String[] keys = conn.keys("test:*").toArray(new String[0]);
-        if (keys.length > 0){
+        if (keys.length > 0) {
             conn.del(keys);
         }
         conn.del(
-            "msgs:test:",
-            "seen:0",
-            "seen:source",
-            "ids:test:",
-            "chat:test:");
+                "msgs:test:",
+                "seen:0",
+                "seen:source",
+                "ids:test:",
+                "chat:test:");
 
         System.out.println("Creating some temporary 'log' files...");
         File f1 = File.createTempFile("temp_redis_1_", ".txt");
@@ -260,7 +249,7 @@ public class Chapter06 {
         File f2 = File.createTempFile("temp_redis_2_", ".txt");
         f2.deleteOnExit();
         writer = new FileWriter(f2);
-        for (int i = 0; i < 100; i++){
+        for (int i = 0; i < 100; i++) {
             writer.write("many lines " + i + '\n');
         }
         writer.close();
@@ -268,10 +257,10 @@ public class Chapter06 {
         File f3 = File.createTempFile("temp_redis_3_", ".txt.gz");
         f3.deleteOnExit();
         writer = new OutputStreamWriter(
-            new GZIPOutputStream(
-                new FileOutputStream(f3)));
+                new GZIPOutputStream(
+                        new FileOutputStream(f3)));
         Random random = new Random();
-        for (int i = 0; i < 1000; i++){
+        for (int i = 0; i < 1000; i++) {
             writer.write("random line " + Long.toHexString(random.nextLong()) + '\n');
         }
         writer.close();
@@ -303,39 +292,21 @@ public class Chapter06 {
         System.out.println("Done cleaning out Redis!");
 
         keys = conn.keys("test:*").toArray(new String[0]);
-        if (keys.length > 0){
+        if (keys.length > 0) {
             conn.del(keys);
         }
         conn.del(
-            "msgs:test:",
-            "seen:0",
-            "seen:source",
-            "ids:test:",
-            "chat:test:");
-    }
-
-    public class TestCallback
-        implements Callback
-    {
-        private int index;
-        public List<Integer> counts = new ArrayList<Integer>();
-
-        public void callback(String line){
-            if (line == null){
-                index++;
-                return;
-            }
-            while (counts.size() == index){
-                counts.add(0);
-            }
-            counts.set(index, counts.get(index) + 1);
-        }
+                "msgs:test:",
+                "seen:0",
+                "seen:source",
+                "ids:test:",
+                "chat:test:");
     }
 
     public void addUpdateContact(Jedis conn, String user, String contact) {
         String acList = "recent:" + user;
         Transaction trans = conn.multi();
-        trans.lrem(acList, 0, contact);
+        trans.lrem(acList, 0, contact); // count = 0 : 移除表中所有与 value 相等的值
         trans.lpush(acList, contact);
         trans.ltrim(acList, 0, 99);
         trans.exec();
@@ -349,19 +320,19 @@ public class Chapter06 {
         List<String> candidates = conn.lrange("recent:" + user, 0, -1);
         List<String> matches = new ArrayList<String>();
         for (String candidate : candidates) {
-            if (candidate.toLowerCase().startsWith(prefix)){
+            if (candidate.toLowerCase().startsWith(prefix)) {
                 matches.add(candidate);
             }
         }
         return matches;
     }
 
-    private static final String VALID_CHARACTERS = "`abcdefghijklmnopqrstuvwxyz{";
     public String[] findPrefixRange(String prefix) {
         int posn = VALID_CHARACTERS.indexOf(prefix.charAt(prefix.length() - 1));
         char suffix = VALID_CHARACTERS.charAt(posn > 0 ? posn - 1 : 0);
         String start = prefix.substring(0, prefix.length() - 1) + suffix + '{';
         String end = prefix + '{';
+        System.err.println("findPrefixRange \t start : " + start + "  \t\t  end : " + end);
         return new String[]{start, end};
     }
 
@@ -387,25 +358,31 @@ public class Chapter06 {
         conn.zadd(zsetName, 0, end);
 
         Set<String> items = null;
-        while (true){
-            conn.watch(zsetName);
-            int sindex = conn.zrank(zsetName, start).intValue();
+        while (true) {
+            conn.watch(zsetName);// watch members:test
+            int sindex = conn.zrank(zsetName, start).intValue(); // 返回有序集 key 中成员 member 的排名
             int eindex = conn.zrank(zsetName, end).intValue();
-            int erange = Math.min(sindex + 9, eindex - 2);
+            int erange = Math.min(sindex + 9, eindex - 2); // 最多获取10个 记录
+            // 开始和结束的标志，有可能在有序列表的最前面两个，此时erange的值为-1，进行区间检查会查出所有值
+            if(erange == -1){
+                items = new HashSet<>();
+                conn.unwatch();
+                break;
+            }
 
             Transaction trans = conn.multi();
-            trans.zrem(zsetName, start);
+            trans.zrem(zsetName, start);// 移除掉临时插入的开始结束标志
             trans.zrem(zsetName, end);
-            trans.zrange(zsetName, sindex, erange);
+            trans.zrange(zsetName, sindex, erange);// 查符合条件的记录，最多10条
             List<Object> results = trans.exec();
-            if (results != null){
-                items = (Set<String>)results.get(results.size() - 1);
+            if (results != null) {
+                items = (Set<String>) results.get(results.size() - 1);
                 break;
             }
         }
 
-        for (Iterator<String> iterator = items.iterator(); iterator.hasNext(); ){
-            if (iterator.next().indexOf('{') != -1){
+        for (Iterator<String> iterator = items.iterator(); iterator.hasNext(); ) {
+            if (iterator.next().indexOf('{') != -1) {
                 iterator.remove();
             }
         }
@@ -415,18 +392,19 @@ public class Chapter06 {
     public String acquireLock(Jedis conn, String lockName) {
         return acquireLock(conn, lockName, 10000);
     }
-    public String acquireLock(Jedis conn, String lockName, long acquireTimeout){
+
+    public String acquireLock(Jedis conn, String lockName, long acquireTimeout) {
         String identifier = UUID.randomUUID().toString();
 
         long end = System.currentTimeMillis() + acquireTimeout;
-        while (System.currentTimeMillis() < end){
-            if (conn.setnx("lock:" + lockName, identifier) == 1){
+        while (System.currentTimeMillis() < end) {
+            if (conn.setnx("lock:" + lockName, identifier) == 1) {
                 return identifier;
             }
 
             try {
                 Thread.sleep(1);
-            }catch(InterruptedException ie){
+            } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }
         }
@@ -434,26 +412,34 @@ public class Chapter06 {
         return null;
     }
 
-    public String acquireLockWithTimeout(
-        Jedis conn, String lockName, long acquireTimeout, long lockTimeout)
-    {
+    // 带失效时间的锁
+
+    /**
+     *
+     * @param conn
+     * @param lockName
+     * @param acquireTimeout    请求超时时间，毫秒数，超过此时间还未获得锁，直接返回
+     * @param lockTimeout   锁存活时间，毫秒数
+     * @return
+     */
+    public String acquireLockWithTimeout(Jedis conn, String lockName, long acquireTimeout, long lockTimeout) {
         String identifier = UUID.randomUUID().toString();
         String lockKey = "lock:" + lockName;
-        int lockExpire = (int)(lockTimeout / 1000);
+        int lockExpire = (int) (lockTimeout / 1000);  // 过期秒数
 
         long end = System.currentTimeMillis() + acquireTimeout;
         while (System.currentTimeMillis() < end) {
-            if (conn.setnx(lockKey, identifier) == 1){
+            if (conn.setnx(lockKey, identifier) == 1) {// 设置成功
                 conn.expire(lockKey, lockExpire);
                 return identifier;
             }
-            if (conn.ttl(lockKey) == -1) {
+            if (conn.ttl(lockKey) == -1) { // 当 key 存在但没有设置剩余生存时间时，返回 -1     当 key 不存在时，返回 -2
                 conn.expire(lockKey, lockExpire);
             }
 
             try {
                 Thread.sleep(1);
-            }catch(InterruptedException ie){
+            } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }
         }
@@ -465,13 +451,13 @@ public class Chapter06 {
     public boolean releaseLock(Jedis conn, String lockName, String identifier) {
         String lockKey = "lock:" + lockName;
 
-        while (true){
+        while (true) {
             conn.watch(lockKey);
-            if (identifier.equals(conn.get(lockKey))){
+            if (identifier.equals(conn.get(lockKey))) {
                 Transaction trans = conn.multi();
                 trans.del(lockKey);
                 List<Object> results = trans.exec();
-                if (results == null){
+                if (results == null) {
                     continue;
                 }
                 return true;
@@ -484,33 +470,42 @@ public class Chapter06 {
         return false;
     }
 
-    public String acquireFairSemaphore(
-        Jedis conn, String semname, int limit, long timeout)
-    {
+    /**
+     *
+     * @param conn
+     * @param semname   信号量名称
+     * @param limit     限制的个数
+     * @param timeout
+     * @return
+     */
+    public String acquireFairSemaphore(Jedis conn, String semname, int limit, long timeout) {
         String identifier = UUID.randomUUID().toString();
         String czset = semname + ":owner";
         String ctr = semname + ":counter";
 
         long now = System.currentTimeMillis();
         Transaction trans = conn.multi();
+
+        // 移除有序集 key 中，所有 score 值介于 min 和 max 之间(包括等于 min 或 max )的成员。
         trans.zremrangeByScore(
-            semname.getBytes(),
-            "-inf".getBytes(),
-            String.valueOf(now - timeout).getBytes());
+                semname.getBytes(),
+                "-inf".getBytes(),
+                String.valueOf(now - timeout).getBytes());
         ZParams params = new ZParams();
-        params.weights(1, 0);
-        trans.zinterstore(czset, params, czset, semname);
+//        params.weights(1, 0);
+        params.weightsByDouble(1, 0);
+        trans.zinterstore(czset, params, czset, semname);// 计算给定的一个或多个有序集的交集
         trans.incr(ctr);
         List<Object> results = trans.exec();
-        int counter = ((Long)results.get(results.size() - 1)).intValue();
+        int counter = ((Long) results.get(results.size() - 1)).intValue();
 
         trans = conn.multi();
         trans.zadd(semname, now, identifier);
         trans.zadd(czset, counter, identifier);
         trans.zrank(czset, identifier);
         results = trans.exec();
-        int result = ((Long)results.get(results.size() - 1)).intValue();
-        if (result < limit){
+        int result = ((Long) results.get(results.size() - 1)).intValue();
+        if (result < limit) {
             return identifier;
         }
 
@@ -521,24 +516,20 @@ public class Chapter06 {
         return null;
     }
 
-    public boolean releaseFairSemaphore(
-        Jedis conn, String semname, String identifier)
-    {
+    public boolean releaseFairSemaphore(Jedis conn, String semname, String identifier) {
         Transaction trans = conn.multi();
         trans.zrem(semname, identifier);
         trans.zrem(semname + ":owner", identifier);
         List<Object> results = trans.exec();
-        return (Long)results.get(results.size() - 1) == 1;
+        return (Long) results.get(results.size() - 1) == 1;
     }
 
-    public String executeLater(
-        Jedis conn, String queue, String name, List<String> args, long delay)
-    {
+    public String executeLater(Jedis conn, String queue, String name, List<String> args, long delay) {
         Gson gson = new Gson();
         String identifier = UUID.randomUUID().toString();
         String itemArgs = gson.toJson(args);
         String item = gson.toJson(new String[]{identifier, queue, name, itemArgs});
-        if (delay > 0){
+        if (delay > 0) {
             conn.zadd("delayed:", System.currentTimeMillis() + delay, item);
         } else {
             conn.rpush("queue:" + queue, item);
@@ -551,13 +542,11 @@ public class Chapter06 {
         return createChat(conn, sender, recipients, message, chatId);
     }
 
-    public String createChat(
-        Jedis conn, String sender, Set<String> recipients, String message, String chatId)
-    {
+    public String createChat(Jedis conn, String sender, Set<String> recipients, String message, String chatId) {
         recipients.add(sender);
 
         Transaction trans = conn.multi();
-        for (String recipient : recipients){
+        for (String recipient : recipients) {
             trans.zadd("chat:" + chatId, 0, recipient);
             trans.zadd("seen:" + recipient, 0, chatId);
         }
@@ -568,19 +557,19 @@ public class Chapter06 {
 
     public String sendMessage(Jedis conn, String chatId, String sender, String message) {
         String identifier = acquireLock(conn, "chat:" + chatId);
-        if (identifier == null){
+        if (identifier == null) {
             throw new RuntimeException("Couldn't get the lock");
         }
         try {
             long messageId = conn.incr("ids:" + chatId);
-            HashMap<String,Object> values = new HashMap<String,Object>();
+            HashMap<String, Object> values = new HashMap<String, Object>();
             values.put("id", messageId);
             values.put("ts", System.currentTimeMillis());
             values.put("sender", sender);
             values.put("message", message);
             String packed = new Gson().toJson(values);
             conn.zadd("msgs:" + chatId, messageId, packed);
-        }finally{
+        } finally {
             releaseLock(conn, "chat:" + chatId, identifier);
         }
         return chatId;
@@ -592,9 +581,9 @@ public class Chapter06 {
         List<Tuple> seenList = new ArrayList<Tuple>(seenSet);
 
         Transaction trans = conn.multi();
-        for (Tuple tuple : seenList){
+        for (Tuple tuple : seenList) {
             String chatId = tuple.getElement();
-            int seenId = (int)tuple.getScore();
+            int seenId = (int) tuple.getScore();
             trans.zrangeByScore("msgs:" + chatId, String.valueOf(seenId + 1), "inf");
         }
         List<Object> results = trans.exec();
@@ -606,21 +595,22 @@ public class Chapter06 {
         List<ChatMessages> chatMessages = new ArrayList<ChatMessages>();
         List<Object[]> seenUpdates = new ArrayList<Object[]>();
         List<Object[]> msgRemoves = new ArrayList<Object[]>();
-        while (seenIterator.hasNext()){
+        while (seenIterator.hasNext()) {
             Tuple seen = seenIterator.next();
-            Set<String> messageStrings = (Set<String>)resultsIterator.next();
-            if (messageStrings.size() == 0){
+            Set<String> messageStrings = (Set<String>) resultsIterator.next();
+            if (messageStrings.size() == 0) {
                 continue;
             }
 
             int seenId = 0;
             String chatId = seen.getElement();
-            List<Map<String,Object>> messages = new ArrayList<Map<String,Object>>();
-            for (String messageJson : messageStrings){
-                Map<String,Object> message = (Map<String,Object>)gson.fromJson(
-                    messageJson, new TypeToken<Map<String,Object>>(){}.getType());
-                int messageId = ((Double)message.get("id")).intValue();
-                if (messageId > seenId){
+            List<Map<String, Object>> messages = new ArrayList<Map<String, Object>>();
+            for (String messageJson : messageStrings) {
+                Map<String, Object> message = (Map<String, Object>) gson.fromJson(
+                        messageJson, new TypeToken<Map<String, Object>>() {
+                        }.getType());
+                int messageId = ((Double) message.get("id")).intValue();
+                if (messageId > seenId) {
                     seenId = messageId;
                 }
                 message.put("id", messageId);
@@ -631,60 +621,58 @@ public class Chapter06 {
             seenUpdates.add(new Object[]{"seen:" + recipient, seenId, chatId});
 
             Set<Tuple> minIdSet = conn.zrangeWithScores("chat:" + chatId, 0, 0);
-            if (minIdSet.size() > 0){
+            if (minIdSet.size() > 0) {
                 msgRemoves.add(new Object[]{
-                    "msgs:" + chatId, minIdSet.iterator().next().getScore()});
+                        "msgs:" + chatId, minIdSet.iterator().next().getScore()});
             }
             chatMessages.add(new ChatMessages(chatId, messages));
         }
 
         trans = conn.multi();
-        for (Object[] seenUpdate : seenUpdates){
+        for (Object[] seenUpdate : seenUpdates) {
             trans.zadd(
-                (String)seenUpdate[0],
-                (Integer)seenUpdate[1],
-                (String)seenUpdate[2]);
+                    (String) seenUpdate[0],
+                    (Integer) seenUpdate[1],
+                    (String) seenUpdate[2]);
         }
-        for (Object[] msgRemove : msgRemoves){
+        for (Object[] msgRemove : msgRemoves) {
             trans.zremrangeByScore(
-                (String)msgRemove[0], 0, ((Double)msgRemove[1]).intValue());
+                    (String) msgRemove[0], 0, ((Double) msgRemove[1]).intValue());
         }
         trans.exec();
 
         return chatMessages;
     }
 
-    public void processLogsFromRedis(Jedis conn, String id, Callback callback)
-        throws InterruptedException, IOException
-    {
-        while (true){
+    public void processLogsFromRedis(Jedis conn, String id, Callback callback) throws InterruptedException, IOException {
+        while (true) {
             List<ChatMessages> fdata = fetchPendingMessages(conn, id);
 
-            for (ChatMessages messages : fdata){
-                for (Map<String,Object> message : messages.messages){
-                    String logFile = (String)message.get("message");
+            for (ChatMessages messages : fdata) {
+                for (Map<String, Object> message : messages.messages) {
+                    String logFile = (String) message.get("message");
 
-                    if (":done".equals(logFile)){
+                    if (":done".equals(logFile)) {
                         return;
                     }
-                    if (logFile == null || logFile.length() == 0){
+                    if (logFile == null || logFile.length() == 0) {
                         continue;
                     }
 
                     InputStream in = new RedisInputStream(
-                        conn, messages.chatId + logFile);
-                    if (logFile.endsWith(".gz")){
+                            conn, messages.chatId + logFile);
+                    if (logFile.endsWith(".gz")) {
                         in = new GZIPInputStream(in);
                     }
 
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                    try{
+                    try {
                         String line = null;
-                        while ((line = reader.readLine()) != null){
+                        while ((line = reader.readLine()) != null) {
                             callback.callback(line);
                         }
                         callback.callback(null);
-                    }finally{
+                    } finally {
                         reader.close();
                     }
 
@@ -692,50 +680,62 @@ public class Chapter06 {
                 }
             }
 
-            if (fdata.size() == 0){
+            if (fdata.size() == 0) {
                 Thread.sleep(100);
             }
         }
     }
 
-    public class RedisInputStream
-        extends InputStream
-    {
+    public interface Callback {
+        void callback(String line);
+    }
+
+    public class TestCallback implements Callback {
+        public List<Integer> counts = new ArrayList<Integer>();
+        private int index;
+
+        public void callback(String line) {
+            if (line == null) {
+                index++;
+                return;
+            }
+            while (counts.size() == index) {
+                counts.add(0);
+            }
+            counts.set(index, counts.get(index) + 1);
+        }
+    }
+
+    public class RedisInputStream extends InputStream {
         private Jedis conn;
         private String key;
         private int pos;
 
-        public RedisInputStream(Jedis conn, String key){
+        public RedisInputStream(Jedis conn, String key) {
             this.conn = conn;
             this.key = key;
         }
 
         @Override
-        public int available()
-            throws IOException
-        {
+        public int available() throws IOException {
             long len = conn.strlen(key);
-            return (int)(len - pos);
+            return (int) (len - pos);
         }
 
         @Override
-        public int read()
-            throws IOException
-        {
+        public int read() throws IOException {
             byte[] block = conn.substr(key.getBytes(), pos, pos);
-            if (block == null || block.length == 0){
+            if (block == null || block.length == 0) {
                 return -1;
             }
             pos++;
-            return (int)(block[0] & 0xff);
+            return (int) (block[0] & 0xff);
         }
 
         @Override
-        public int read(byte[] buf, int off, int len)
-            throws IOException
-        {
+        public int read(byte[] buf, int off, int len) throws IOException {
             byte[] block = conn.substr(key.getBytes(), pos, pos + (len - off - 1));
-            if (block == null || block.length == 0){
+            if (block == null || block.length == 0) {
                 return -1;
             }
             System.arraycopy(block, 0, buf, off, block.length);
@@ -749,38 +749,31 @@ public class Chapter06 {
         }
     }
 
-    public interface Callback {
-        void callback(String line);
-    }
-
-    public class ChatMessages
-    {
+    public class ChatMessages {
         public String chatId;
-        public List<Map<String,Object>> messages;
+        public List<Map<String, Object>> messages;
 
-        public ChatMessages(String chatId, List<Map<String,Object>> messages){
+        public ChatMessages(String chatId, List<Map<String, Object>> messages) {
             this.chatId = chatId;
             this.messages = messages;
         }
 
-        public boolean equals(Object other){
-            if (!(other instanceof ChatMessages)){
+        public boolean equals(Object other) {
+            if (!(other instanceof ChatMessages)) {
                 return false;
             }
-            ChatMessages otherCm = (ChatMessages)other;
+            ChatMessages otherCm = (ChatMessages) other;
             return chatId.equals(otherCm.chatId) &&
-                messages.equals(otherCm.messages);
+                    messages.equals(otherCm.messages);
         }
     }
 
-    public class PollQueueThread
-        extends Thread
-    {
+    public class PollQueueThread extends Thread {
         private Jedis conn;
         private boolean quit;
         private Gson gson = new Gson();
 
-        public PollQueueThread(){
+        public PollQueueThread() {
             this.conn = new Jedis("localhost");
             this.conn.select(15);
         }
@@ -790,13 +783,13 @@ public class Chapter06 {
         }
 
         public void run() {
-            while (!quit){
+            while (!quit) {
                 Set<Tuple> items = conn.zrangeWithScores("delayed:", 0, 0);
                 Tuple item = items.size() > 0 ? items.iterator().next() : null;
                 if (item == null || item.getScore() > System.currentTimeMillis()) {
-                    try{
+                    try {
                         sleep(10);
-                    }catch(InterruptedException ie){
+                    } catch (InterruptedException ie) {
                         Thread.interrupted();
                     }
                     continue;
@@ -808,11 +801,11 @@ public class Chapter06 {
                 String queue = values[1];
 
                 String locked = acquireLock(conn, identifier);
-                if (locked == null){
+                if (locked == null) {
                     continue;
                 }
 
-                if (conn.zrem("delayed:", json) == 1){
+                if (conn.zrem("delayed:", json) == 1) {
                     conn.rpush("queue:" + queue, json);
                 }
 
@@ -821,9 +814,7 @@ public class Chapter06 {
         }
     }
 
-    public class CopyLogsThread
-        extends Thread
-    {
+    public class CopyLogsThread extends Thread {
         private Jedis conn;
         private File path;
         private String channel;
@@ -843,53 +834,53 @@ public class Chapter06 {
             Deque<File> waiting = new ArrayDeque<File>();
             long bytesInRedis = 0;
 
-            Set<String> recipients= new HashSet<String>();
-            for (int i = 0; i < count; i++){
+            Set<String> recipients = new HashSet<String>();
+            for (int i = 0; i < count; i++) {
                 recipients.add(String.valueOf(i));
             }
             createChat(conn, "source", recipients, "", channel);
-            File[] logFiles = path.listFiles(new FilenameFilter(){
-                public boolean accept(File dir, String name){
+            File[] logFiles = path.listFiles(new FilenameFilter() {
+                public boolean accept(File dir, String name) {
                     return name.startsWith("temp_redis");
                 }
             });
             Arrays.sort(logFiles);
-            for (File logFile : logFiles){
+            for (File logFile : logFiles) {
                 long fsize = logFile.length();
-                while ((bytesInRedis + fsize) > limit){
+                while ((bytesInRedis + fsize) > limit) {
                     long cleaned = clean(waiting, count);
-                    if (cleaned != 0){
+                    if (cleaned != 0) {
                         bytesInRedis -= cleaned;
-                    }else{
-                        try{
+                    } else {
+                        try {
                             sleep(250);
-                        }catch(InterruptedException ie){
+                        } catch (InterruptedException ie) {
                             Thread.interrupted();
                         }
                     }
                 }
 
                 BufferedInputStream in = null;
-                try{
+                try {
                     in = new BufferedInputStream(new FileInputStream(logFile));
                     int read = 0;
                     byte[] buffer = new byte[8192];
-                    while ((read = in.read(buffer, 0, buffer.length)) != -1){
-                        if (buffer.length != read){
+                    while ((read = in.read(buffer, 0, buffer.length)) != -1) {
+                        if (buffer.length != read) {
                             byte[] bytes = new byte[read];
                             System.arraycopy(buffer, 0, bytes, 0, read);
                             conn.append((channel + logFile).getBytes(), bytes);
-                        }else{
+                        } else {
                             conn.append((channel + logFile).getBytes(), buffer);
                         }
                     }
-                }catch(IOException ioe){
+                } catch (IOException ioe) {
                     ioe.printStackTrace();
                     throw new RuntimeException(ioe);
-                }finally{
-                    try{
+                } finally {
+                    try {
                         in.close();
-                    }catch(Exception ignore){
+                    } catch (Exception ignore) {
                     }
                 }
 
@@ -901,14 +892,14 @@ public class Chapter06 {
 
             sendMessage(conn, channel, "source", ":done");
 
-            while (waiting.size() > 0){
+            while (waiting.size() > 0) {
                 long cleaned = clean(waiting, count);
-                if (cleaned != 0){
+                if (cleaned != 0) {
                     bytesInRedis -= cleaned;
-                }else{
-                    try{
+                } else {
+                    try {
                         sleep(250);
-                    }catch(InterruptedException ie){
+                    } catch (InterruptedException ie) {
                         Thread.interrupted();
                     }
                 }
@@ -916,11 +907,11 @@ public class Chapter06 {
         }
 
         private long clean(Deque<File> waiting, int count) {
-            if (waiting.size() == 0){
+            if (waiting.size() == 0) {
                 return 0;
             }
             File w0 = waiting.getFirst();
-            if (String.valueOf(count).equals(conn.get(channel + w0 + ":done"))){
+            if (String.valueOf(count).equals(conn.get(channel + w0 + ":done"))) {
                 conn.del(channel + w0, channel + w0 + ":done");
                 return waiting.removeFirst().length();
             }
