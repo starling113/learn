@@ -15,7 +15,7 @@ import java.util.zip.GZIPOutputStream;
 public class Chapter06 {
     private static final String VALID_CHARACTERS = "`abcdefghijklmnopqrstuvwxyz{";
 
-    public static  void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         new Chapter06().run();
     }
 
@@ -26,10 +26,10 @@ public class Chapter06 {
 //        testAddUpdateContact(conn);
 //        testAddressBookAutocomplete(conn);
 //        testDistributedLocking(conn);// 分布式锁
-        testCountingSemaphore(conn);// 信号量
+//        testCountingSemaphore(conn);// 信号量
 //        testDelayedTasks(conn);
-//        testMultiRecipientMessaging(conn);
-//        testFileDistribution(conn);
+        testMultiRecipientMessaging(conn); // 多客户端接收消息
+//        testFileDistribution(conn); // 文件分发
     }
 
     public void testAddUpdateContact(Jedis conn) {
@@ -98,7 +98,7 @@ public class Chapter06 {
         System.out.println();
         System.out.println("now let's try to find users with names starting with 'je':");
         Set<String> r = autocompleteOnPrefix(conn, "test", "je");
-        System.out.println("prefix je : "+r);
+        System.out.println("prefix je : " + r);
         System.out.println(r.size() == 3);
 
         System.out.println("jeff just left to join a different guild...");
@@ -113,10 +113,10 @@ public class Chapter06 {
         System.out.println("\n----- testDistributedLocking 分布式锁 -----");
         conn.del("lock:testlock");
         System.out.println("Getting an initial lock...");
-        System.out.println("第一次获得锁："+ acquireLockWithTimeout(conn, "testlock", 1000, 1000));
+        System.out.println("第一次获得锁：" + acquireLockWithTimeout(conn, "testlock", 1000, 1000));
         System.out.println("Got it!");
         System.out.println("Trying to get it again without releasing the first one...");
-        System.out.println("10毫秒后获得锁（前一个锁还没释放）："+ acquireLockWithTimeout(conn, "testlock", 10, 1000));
+        System.out.println("10毫秒后获得锁（前一个锁还没释放）：" + acquireLockWithTimeout(conn, "testlock", 10, 1000));
         System.out.println("Failed to get it!");
         System.out.println();
 
@@ -127,12 +127,12 @@ public class Chapter06 {
         System.out.println("等2秒再次获得锁 lockId = " + lockId);
         System.out.println("Got it!");
         System.out.println("Releasing the lock...");
-        System.out.println("释放锁"+lockId+" 结果：" +  releaseLock(conn, "testlock", lockId));
+        System.out.println("释放锁" + lockId + " 结果：" + releaseLock(conn, "testlock", lockId));
         System.out.println("Released it...");
         System.out.println();
 
         System.out.println("Acquiring it again...");
-        System.out.println("再次获得锁 lockId = " + acquireLockWithTimeout(conn, "testlock", 1000, 1000) );
+        System.out.println("再次获得锁 lockId = " + acquireLockWithTimeout(conn, "testlock", 1000, 1000));
         System.out.println("Got it!");
         conn.del("lock:testlock");
     }
@@ -142,27 +142,27 @@ public class Chapter06 {
         conn.del("testsem", "testsem:owner", "testsem:counter");
         System.out.println("Getting 3 initial semaphores with a limit of 3...");
         for (int i = 0; i < 3; i++) {
-            assert acquireFairSemaphore(conn, "testsem", 3, 1000) != null;
+            System.out.println("获取信号量：" + acquireFairSemaphore(conn, "testsem", 3, 1000));
         }
         System.out.println("Done!");
         System.out.println("Getting one more that should fail...");
-        assert acquireFairSemaphore(conn, "testsem", 3, 1000) == null;
+        System.err.println("获取信号量：" + acquireFairSemaphore(conn, "testsem", 3, 1000));
         System.out.println("Couldn't get it!");
         System.out.println();
 
-        System.out.println("Lets's wait for some of them to time out");
+        System.out.println("等待信号量都超时，Lets's wait for some of them to time out");
         Thread.sleep(2000);
-        System.out.println("Can we get one?");
+        System.out.println("获取一个信号量Can we get one?");
         String id = acquireFairSemaphore(conn, "testsem", 3, 1000);
-        assert id != null;
+        System.out.println("获取信号量：" + id);
         System.out.println("Got one!");
         System.out.println("Let's release it...");
-        assert releaseFairSemaphore(conn, "testsem", id);
+        System.out.println("释放信号量：" + releaseFairSemaphore(conn, "testsem", id));
         System.out.println("Released!");
         System.out.println();
         System.out.println("And let's make sure we can get 3 more!");
         for (int i = 0; i < 3; i++) {
-            assert acquireFairSemaphore(conn, "testsem", 3, 1000) != null;
+            System.out.println("获取信号量：" + acquireFairSemaphore(conn, "testsem", 3, 1000));
         }
         System.out.println("We got them!");
         conn.del("testsem", "testsem:owner", "testsem:counter");
@@ -173,11 +173,11 @@ public class Chapter06 {
         conn.del("queue:tqueue", "delayed:");
         System.out.println("Let's start some regular and delayed tasks...");
         for (long delay : new long[]{0, 500, 0, 1500}) {
-            assert executeLater(conn, "tqueue", "testfn", new ArrayList<String>(), delay) != null;
+            System.out.println(executeLater(conn, "tqueue", "testfn", new ArrayList<String>(), delay));
         }
         long r = conn.llen("queue:tqueue");
         System.out.println("How many non-delayed tasks are there (should be 2)? " + r);
-        assert r == 2;
+        System.out.println("立刻执行任务数：" + r);
         System.out.println();
 
         System.out.println("Let's start up a thread to bring those delayed tasks back...");
@@ -190,7 +190,7 @@ public class Chapter06 {
         thread.join();
         r = conn.llen("queue:tqueue");
         System.out.println("Waiting is over, how many tasks do we have (should be 4)? " + r);
-        assert r == 4;
+        System.out.println("结束等待，还有任务数：" + r);
         conn.del("queue:tqueue", "delayed:");
     }
 
@@ -198,8 +198,8 @@ public class Chapter06 {
         System.out.println("\n----- testMultiRecipientMessaging -----");
         conn.del("ids:chat:", "msgs:1", "ids:1", "seen:joe", "seen:jeff", "seen:jenny");
 
-        System.out.println("Let's create a new chat session with some recipients...");
-        Set<String> recipients = new HashSet<String>();
+        System.out.println("让我们与一些收件人创建一个新的聊天会话 Let's create a new chat session with some recipients...");
+        Set<String> recipients = new HashSet<>(); // 收件人
         recipients.add("jeff");
         recipients.add("jenny");
         String chatId = createChat(conn, "joe", recipients, "message 1");
@@ -210,7 +210,7 @@ public class Chapter06 {
         System.out.println();
 
         System.out.println("And let's get the messages that are waiting for jeff and jenny...");
-        List<ChatMessages> r1 = fetchPendingMessages(conn, "jeff");
+        List<ChatMessages> r1 = fetchPendingMessages(conn, "jeff");  // 获取等待消息
         List<ChatMessages> r2 = fetchPendingMessages(conn, "jenny");
         System.out.println("They are the same? " + r1.equals(r2));
         assert r1.equals(r2);
@@ -364,7 +364,7 @@ public class Chapter06 {
             int eindex = conn.zrank(zsetName, end).intValue();
             int erange = Math.min(sindex + 9, eindex - 2); // 最多获取10个 记录
             // 开始和结束的标志，有可能在有序列表的最前面两个，此时erange的值为-1，进行区间检查会查出所有值
-            if(erange == -1){
+            if (erange == -1) {
                 items = new HashSet<>();
                 conn.unwatch();
                 break;
@@ -415,11 +415,10 @@ public class Chapter06 {
     // 带失效时间的锁
 
     /**
-     *
      * @param conn
      * @param lockName
-     * @param acquireTimeout    请求超时时间，毫秒数，超过此时间还未获得锁，直接返回
-     * @param lockTimeout   锁存活时间，毫秒数
+     * @param acquireTimeout 请求超时时间，毫秒数，超过此时间还未获得锁，直接返回
+     * @param lockTimeout    锁存活时间，毫秒数
      * @return
      */
     public String acquireLockWithTimeout(Jedis conn, String lockName, long acquireTimeout, long lockTimeout) {
@@ -471,51 +470,62 @@ public class Chapter06 {
     }
 
     /**
+     * 限流的目的是通过对并发访问/请求进行限速或者一个时间窗口内的的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务。
+     * <p>
+     * Nginx接入层限流
+     * 按照一定的规则如帐号、IP、系统调用逻辑等在Nginx层面做限流
+     * 业务应用系统限流
+     * 通过业务代码控制流量这个流量可以被称为信号量，可以理解成是一种锁，它可以限制一项资源最多能同时被多少进程访问。
+     * <p>
+     * https://www.cnblogs.com/strugglesdd/p/7773418.html
+     * <p>
+     * 不要使用时间戳作为信号量的排序分数，因为在分布式环境中，各个节点的时间差的原因，会出现不公平信号量的现象
      *
      * @param conn
-     * @param semname   信号量名称
-     * @param limit     限制的个数
+     * @param semname 信号量名称
+     * @param limit   限制的个数
      * @param timeout
      * @return
      */
     public String acquireFairSemaphore(Jedis conn, String semname, int limit, long timeout) {
         String identifier = UUID.randomUUID().toString();
-        String czset = semname + ":owner";
-        String ctr = semname + ":counter";
+        String testsemOwnerZSET = semname + ":owner";// 将计数器的值作为分值，记录到信号量拥有者集合中
+        String testsemCounterString = semname + ":counter"; // 计数器，确保最先对计数器自增的客户端可以获得信号量
 
         long now = System.currentTimeMillis();
         Transaction trans = conn.multi();
 
         // 移除有序集 key 中，所有 score 值介于 min 和 max 之间(包括等于 min 或 max )的成员。
-        trans.zremrangeByScore(
-                semname.getBytes(),
-                "-inf".getBytes(),
-                String.valueOf(now - timeout).getBytes());
+        trans.zremrangeByScore(semname, "-inf", String.valueOf(now - timeout));// -inf 表示的是负无穷大
         ZParams params = new ZParams();
 //        params.weights(1, 0);
         params.weightsByDouble(1, 0);
-        trans.zinterstore(czset, params, czset, semname);// 计算给定的一个或多个有序集的交集
-        trans.incr(ctr);
+
+        // semname 已经移除了无用的数据，将testsemOwnerZSET, semname进行交集计算，移除testsemOwnerZSET中无用元素
+        trans.zinterstore(testsemOwnerZSET, params, testsemOwnerZSET, semname);// 删除超时的信号量（ 计算给定的一个或多个有序集的交集）
+        trans.incr(testsemCounterString);// 计数器自增
         List<Object> results = trans.exec();
         int counter = ((Long) results.get(results.size() - 1)).intValue();
 
         trans = conn.multi();
-        trans.zadd(semname, now, identifier);
-        trans.zadd(czset, counter, identifier);
-        trans.zrank(czset, identifier);
+        trans.zadd(semname, now, identifier);// 当前客户端的时间戳做为分值
+        trans.zadd(testsemOwnerZSET, counter, identifier);
+        trans.zrank(testsemOwnerZSET, identifier); // 返回identifier的排名，通过检查排名，判断客户端是否取得了信号量
         results = trans.exec();
-        int result = ((Long) results.get(results.size() - 1)).intValue();
-        if (result < limit) {
+        int result = ((Long) results.get(results.size() - 1)).intValue(); //identifier的排名
+        if (result < limit) { // identifier的排名 没有超过限定的数量
             return identifier;
         }
 
+        //没有获得信号量，清理无用数据
         trans = conn.multi();
         trans.zrem(semname, identifier);
-        trans.zrem(czset, identifier);
+        trans.zrem(testsemOwnerZSET, identifier);
         trans.exec();
         return null;
     }
 
+    // 释放信号量
     public boolean releaseFairSemaphore(Jedis conn, String semname, String identifier) {
         Transaction trans = conn.multi();
         trans.zrem(semname, identifier);
@@ -575,10 +585,11 @@ public class Chapter06 {
         return chatId;
     }
 
+    // 获取等待消息
     @SuppressWarnings("unchecked")
     public List<ChatMessages> fetchPendingMessages(Jedis conn, String recipient) {
         Set<Tuple> seenSet = conn.zrangeWithScores("seen:" + recipient, 0, -1);
-        List<Tuple> seenList = new ArrayList<Tuple>(seenSet);
+        List<Tuple> seenList = new ArrayList<>(seenSet);
 
         Transaction trans = conn.multi();
         for (Tuple tuple : seenList) {
@@ -592,9 +603,9 @@ public class Chapter06 {
         Iterator<Tuple> seenIterator = seenList.iterator();
         Iterator<Object> resultsIterator = results.iterator();
 
-        List<ChatMessages> chatMessages = new ArrayList<ChatMessages>();
-        List<Object[]> seenUpdates = new ArrayList<Object[]>();
-        List<Object[]> msgRemoves = new ArrayList<Object[]>();
+        List<ChatMessages> chatMessages = new ArrayList<>();
+        List<Object[]> seenUpdates = new ArrayList<>();
+        List<Object[]> msgRemoves = new ArrayList<>();
         while (seenIterator.hasNext()) {
             Tuple seen = seenIterator.next();
             Set<String> messageStrings = (Set<String>) resultsIterator.next();
@@ -604,7 +615,7 @@ public class Chapter06 {
 
             int seenId = 0;
             String chatId = seen.getElement();
-            List<Map<String, Object>> messages = new ArrayList<Map<String, Object>>();
+            List<Map<String, Object>> messages = new ArrayList<>();
             for (String messageJson : messageStrings) {
                 Map<String, Object> message = (Map<String, Object>) gson.fromJson(
                         messageJson, new TypeToken<Map<String, Object>>() {
@@ -774,8 +785,8 @@ public class Chapter06 {
         private Gson gson = new Gson();
 
         public PollQueueThread() {
-            this.conn = new Jedis("localhost");
-            this.conn.select(15);
+            this.conn = new Jedis(RedisConst.redisHost);
+            this.conn.select(RedisConst.redisDbIndex);
         }
 
         public void quit() {
@@ -784,7 +795,7 @@ public class Chapter06 {
 
         public void run() {
             while (!quit) {
-                Set<Tuple> items = conn.zrangeWithScores("delayed:", 0, 0);
+                Set<Tuple> items = conn.zrangeWithScores("delayed:", 0, 0); // 第一个任务
                 Tuple item = items.size() > 0 ? items.iterator().next() : null;
                 if (item == null || item.getScore() > System.currentTimeMillis()) {
                     try {
