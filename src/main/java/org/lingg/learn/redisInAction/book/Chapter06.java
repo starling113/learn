@@ -2,6 +2,7 @@ package org.lingg.learn.redisInAction.book;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.junit.jupiter.api.Test;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
@@ -28,8 +29,8 @@ public class Chapter06 {
 //        testDistributedLocking(conn);// 分布式锁
 //        testCountingSemaphore(conn);// 信号量
 //        testDelayedTasks(conn);
-        testMultiRecipientMessaging(conn); // 多客户端接收消息
-//        testFileDistribution(conn); // 文件分发
+//        testMultiRecipientMessaging(conn); // 多客户端接收消息
+        testFileDistribution(conn); // 文件分发
     }
 
     public void testAddUpdateContact(Jedis conn) {
@@ -552,13 +553,22 @@ public class Chapter06 {
         return createChat(conn, sender, recipients, message, chatId);
     }
 
+    /**
+     *
+     * @param conn
+     * @param sender  发件人
+     * @param recipients 收件人列表
+     * @param message
+     * @param chatId   群组id
+     * @return
+     */
     public String createChat(Jedis conn, String sender, Set<String> recipients, String message, String chatId) {
         recipients.add(sender);
 
         Transaction trans = conn.multi();
         for (String recipient : recipients) {
-            trans.zadd("chat:" + chatId, 0, recipient);
-            trans.zadd("seen:" + recipient, 0, chatId);
+            trans.zadd("chat:" + chatId, 0, recipient); // 记录某个群组，有哪些人参加了，score表示此人最近读取群组里哪条消息
+            trans.zadd("seen:" + recipient, 0, chatId); // 记录每个人参加了什么群组，score表示最新查看了此群组的哪条消息
         }
         trans.exec();
 
@@ -566,19 +576,22 @@ public class Chapter06 {
     }
 
     public String sendMessage(Jedis conn, String chatId, String sender, String message) {
-        String identifier = acquireLock(conn, "chat:" + chatId);
+        String identifier = acquireLock(conn, "chat:" + chatId);// 获得锁 "lock:chat:"+ chatId
         if (identifier == null) {
             throw new RuntimeException("Couldn't get the lock");
         }
         try {
             long messageId = conn.incr("ids:" + chatId);
+
             HashMap<String, Object> values = new HashMap<String, Object>();
             values.put("id", messageId);
             values.put("ts", System.currentTimeMillis());
             values.put("sender", sender);
             values.put("message", message);
             String packed = new Gson().toJson(values);
+
             conn.zadd("msgs:" + chatId, messageId, packed);
+
         } finally {
             releaseLock(conn, "chat:" + chatId, identifier);
         }
@@ -825,6 +838,19 @@ public class Chapter06 {
         }
     }
 
+
+    @Test
+    public void testCreateChat(){
+        Deque<File> waiting = new ArrayDeque<>();
+        long bytesInRedis = 0;
+
+        Set<String> recipients = new HashSet<>();
+        for (int i = 0; i < 3; i++) {
+            recipients.add(String.valueOf(i));
+        }
+        createChat(new Jedis(RedisConst.redisHost), "source", recipients, "", "test:");
+    }
+
     public class CopyLogsThread extends Thread {
         private Jedis conn;
         private File path;
@@ -833,8 +859,8 @@ public class Chapter06 {
         private long limit;
 
         public CopyLogsThread(File path, String channel, int count, long limit) {
-            this.conn = new Jedis("localhost");
-            this.conn.select(15);
+            this.conn = new Jedis(RedisConst.redisHost);
+            this.conn.select(RedisConst.redisDbIndex);
             this.path = path;
             this.channel = channel;
             this.count = count;
@@ -842,10 +868,10 @@ public class Chapter06 {
         }
 
         public void run() {
-            Deque<File> waiting = new ArrayDeque<File>();
+            Deque<File> waiting = new ArrayDeque<>();
             long bytesInRedis = 0;
 
-            Set<String> recipients = new HashSet<String>();
+            Set<String> recipients = new HashSet<>();
             for (int i = 0; i < count; i++) {
                 recipients.add(String.valueOf(i));
             }
