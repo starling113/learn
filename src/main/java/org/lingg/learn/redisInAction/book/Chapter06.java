@@ -214,7 +214,7 @@ public class Chapter06 {
         List<ChatMessages> r1 = fetchPendingMessages(conn, "jeff");  // 获取等待消息
         List<ChatMessages> r2 = fetchPendingMessages(conn, "jenny");
         System.out.println("They are the same? " + r1.equals(r2));
-        assert r1.equals(r2);
+        System.out.println(r1.equals(r2));
         System.out.println("Those messages are:");
         for (ChatMessages chat : r1) {
             System.out.println("  chatId: " + chat.chatId);
