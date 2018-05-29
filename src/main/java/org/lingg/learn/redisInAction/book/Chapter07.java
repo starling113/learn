@@ -62,18 +62,17 @@ public class Chapter07 {
 
         System.out.println("We're tokenizing some content...");
         Set<String> tokens = tokenize(CONTENT);
-        System.out.println("Those tokens are: " +
-                Arrays.toString(tokens.toArray()));
-        assert tokens.size() > 0;
+        System.out.println("Those tokens are: " + Arrays.toString(tokens.toArray()));
+        System.out.println(tokens.size() > 0);
 
         System.out.println("And now we are indexing that content...");
         int count = indexDocument(conn, "test", CONTENT);
-        assert count == tokens.size();
-        Set<String> test = new HashSet<String>();
+        System.out.println(count == tokens.size());
+        Set<String> test = new HashSet<>();
         test.add("test");
         for (String t : tokens) {
             Set<String> members = conn.smembers("idx:" + t);
-            assert test.equals(members);
+            System.out.println( test.equals(members));
         }
     }
 
