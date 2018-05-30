@@ -1,15 +1,19 @@
 package org.lingg.learn.redisInAction.book;
 
 import org.javatuples.Pair;
+import org.junit.jupiter.api.Test;
+import org.lingg.learn.redisInAction.book.util.ReflectionUtils;
 import redis.clients.jedis.*;
 
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.management.Query;
+import javax.naming.directory.SearchResult;
 
 public class Chapter07 {
-    private static final Pattern QUERY_RE = Pattern.compile("[+-]?[a-z']{2,}");
-    private static final Pattern WORDS_RE = Pattern.compile("[a-z']{2,}");
+    private static final Pattern QUERY_RE = Pattern.compile("[+-]?[a-z0-9']{2,}");
+    private static final Pattern WORDS_RE = Pattern.compile("[a-z0-9']{2,}");
     private static final Set<String> STOP_WORDS = new HashSet<>();
     private static String CONTENT =
             "this is some random content, look at how it is indexed.";
@@ -43,12 +47,12 @@ public class Chapter07 {
         conn.select(RedisConst.redisDbIndex);
         conn.flushDB();
 
-        testIndexDocument(conn);
+//        testIndexDocument(conn);
 //        testSetOperations(conn);
 //        testParseQuery(conn);
 //        testParseAndSearch(conn);
 //        testSearchWithSort(conn);
-//        testSearchWithZsort(conn);
+        testSearchWithZsort(conn);
 //        conn.flushDB();
 //
 //        testStringToScore(conn);
@@ -65,48 +69,65 @@ public class Chapter07 {
         System.out.println("Those tokens are: " + Arrays.toString(tokens.toArray()));
         System.out.println(tokens.size() > 0);
 
+        String docid = "文章A";
+
         System.out.println("And now we are indexing that content...");
-        int count = indexDocument(conn, "test", CONTENT);
+        int count = indexDocument(conn, docid, CONTENT);
         System.out.println(count == tokens.size());
         Set<String> test = new HashSet<>();
-        test.add("test");
+        test.add(docid);
         for (String t : tokens) {
             Set<String> members = conn.smembers("idx:" + t);
-            System.out.println( test.equals(members));
+            System.out.println(test.equals(members));
         }
     }
 
     public void testSetOperations(Jedis conn) {
         System.out.println("\n----- testSetOperations -----");
-        indexDocument(conn, "test", CONTENT);
+        String docid = "文章A";
+        indexDocument(conn, "文章A", "aaa aab aac about bothab1 bothab2"); // about because 忽略的单词
+        indexDocument(conn, "文章B", "bba bbb bbc because bothab1 bothab2");
 
-        Set<String> test = new HashSet<String>();
-        test.add("test");
+        Set<String> test = new HashSet<>();
+        test.add("文章A");
+        test.add("文章B");
 
         Transaction trans = conn.multi();
-        String id = intersect(trans, 30, "content", "indexed");
+        // 交集sinterstore
+        String id = intersect(trans, 30, new String[]{"bothab1", "bothab2"}); // 同时包含"bothab1", "bothab2"的文章
         trans.exec();
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("交集 : " + conn.smembers("idx:" + id));
+        System.out.println(test.equals(conn.smembers("idx:" + id)));
 
         trans = conn.multi();
-        id = intersect(trans, 30, "content", "ignored");
+        id = intersect(trans, 30, new String[]{ "aab", "bbc"}); //同时包含"aab", "bbc"的文章
         trans.exec();
-        assert conn.smembers("idx:" + id).isEmpty();
+        System.out.println("交集 : " + conn.smembers("idx:" + id));
+        System.out.println(conn.smembers("idx:" + id).isEmpty());
+
+
 
         trans = conn.multi();
-        id = union(trans, 30, "content", "ignored");
+        //并集sunionstore
+        id = union(trans, 30,  new String[]{"aab", "bbc","because"});//包含aab或者bbc的文章  because属于忽略的单词
         trans.exec();
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("并集 : " + conn.smembers("idx:" + id));
+        System.out.println(test.equals(conn.smembers("idx:" + id)));
+
+
 
         trans = conn.multi();
-        id = difference(trans, 30, "content", "ignored");
+        //差集sdiffstore
+        id = difference(trans, 30, new String[]{"aac", "bbc"}); //aab 在，但是 bbc 不在 的文章
         trans.exec();
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("差集 : " + conn.smembers("idx:" + id));
+        System.out.println(test.equals(conn.smembers("idx:" + id)));
 
         trans = conn.multi();
-        id = difference(trans, 30, "content", "indexed");
+        id = difference(trans, 30, "aaa", "aab");
         trans.exec();
-        assert conn.smembers("idx:" + id).isEmpty();
+        System.out.println("差集 : " + conn.smembers("idx:" + id));
+        System.out.println(conn.smembers("idx:" + id).isEmpty());
     }
 
     public void testParseQuery(Jedis conn) {
@@ -115,45 +136,45 @@ public class Chapter07 {
         Query query = parse(queryString);
         String[] words = queryString.split(" ");
         for (int i = 0; i < words.length; i++) {
-            List<String> word = new ArrayList<String>();
+            List<String> word = new ArrayList<>();
             word.add(words[i]);
-            assert word.equals(query.all.get(i));
+            System.out.println( word.equals(query.all.get(i)));
         }
-        assert query.unwanted.isEmpty();
+        System.out.println( query.unwanted.isEmpty());
 
         queryString = "test +query without -stopwords";
         query = parse(queryString);
-        assert "test".equals(query.all.get(0).get(0));
-        assert "query".equals(query.all.get(0).get(1));
-        assert "without".equals(query.all.get(1).get(0));
-        assert "stopwords".equals(query.unwanted.toArray()[0]);
+        System.out.println( "test".equals(query.all.get(0).get(0)));
+        System.out.println(  "query".equals(query.all.get(0).get(1)));
+        System.out.println(  "without".equals(query.all.get(1).get(0)));
+        System.out.println(  "stopwords".equals(query.unwanted.toArray()[0]));
     }
 
     public void testParseAndSearch(Jedis conn) {
         System.out.println("\n----- testParseAndSearch -----");
         System.out.println("And now we are testing search...");
-        indexDocument(conn, "test", CONTENT);
+        indexDocument(conn, "documentA", CONTENT);
 
-        Set<String> test = new HashSet<String>();
-        test.add("test");
+        Set<String> test = new HashSet<>();
+        test.add("documentA");
 
         String id = parseAndSearch(conn, "content", 30);
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("content :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed random", 30);
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("content indexed random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content +indexed random", 30);
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println("content +indexed random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed +random", 30);
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println( "content indexed +random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed -random", 30);
-        assert conn.smembers("idx:" + id).isEmpty();
+        System.out.println( "content indexed -random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed +random", 30);
-        assert test.equals(conn.smembers("idx:" + id));
+        System.out.println( "content indexed +random :  " + conn.smembers("idx:" + id));
 
         System.out.println("Which passed!");
     }
@@ -162,25 +183,25 @@ public class Chapter07 {
         System.out.println("\n----- testSearchWithSort -----");
         System.out.println("And now let's test searching with sorting...");
 
-        indexDocument(conn, "test", CONTENT);
-        indexDocument(conn, "test2", CONTENT);
+        indexDocument(conn, "documentA", CONTENT);
+        indexDocument(conn, "documentB", CONTENT);
 
-        HashMap<String, String> values = new HashMap<String, String>();
+        HashMap<String, String> values = new HashMap<>();
         values.put("updated", "12345");
         values.put("id", "10");
-        conn.hmset("kb:doc:test", values);
+        conn.hmset("kb:doc:documentA", values);
 
         values.put("updated", "54321");
         values.put("id", "1");
-        conn.hmset("kb:doc:test2", values);
+        conn.hmset("kb:doc:documentB", values);
 
         SearchResult result = searchAndSort(conn, "content", "-updated");
-        assert "test2".equals(result.results.get(0));
-        assert "test".equals(result.results.get(1));
+        System.out.println(result.results.get(0));
+        System.out.println(result.results.get(1));
 
         result = searchAndSort(conn, "content", "-id");
-        assert "test".equals(result.results.get(0));
-        assert "test2".equals(result.results.get(1));
+        System.out.println(result.results.get(0));
+        System.out.println(result.results.get(1));
 
         System.out.println("Which passed!");
     }
@@ -197,18 +218,18 @@ public class Chapter07 {
         conn.zadd("idx:sort:votes", 10, "test");
         conn.zadd("idx:sort:votes", 1, "test2");
 
-        Map<String, Integer> weights = new HashMap<String, Integer>();
+        Map<String, Integer> weights = new HashMap<>();
         weights.put("update", 1);
         weights.put("vote", 0);
         SearchResult result = searchAndZsort(conn, "content", false, weights);
-        assert "test".equals(result.results.get(0));
-        assert "test2".equals(result.results.get(1));
+        System.out.println(result.results.get(0));
+        System.out.println(result.results.get(1));
 
         weights.put("update", 0);
         weights.put("vote", 1);
         result = searchAndZsort(conn, "content", false, weights);
-        assert "test2".equals(result.results.get(0));
-        assert "test".equals(result.results.get(1));
+        System.out.println(result.results.get(0));
+        System.out.println(result.results.get(1));
         System.out.println("Which passed!");
     }
 
@@ -339,6 +360,7 @@ public class Chapter07 {
 
     public int indexDocument(Jedis conn, String docid, String content) {
         Set<String> words = tokenize(content);
+        System.out.println("content 处理后 ： " + words);
         Transaction trans = conn.multi();
         for (String word : words) {
             trans.sadd("idx:" + word, docid);
@@ -346,33 +368,40 @@ public class Chapter07 {
         return trans.exec().size();
     }
 
-    private String setCommon(
-            Transaction trans, String method, int ttl, String... items) {
+    private String setCommon(Transaction trans, String method, int ttl, String... items) {
         String[] keys = new String[items.length];
         for (int i = 0; i < items.length; i++) {
             keys[i] = "idx:" + items[i];
         }
 
-        String id = UUID.randomUUID().toString();
+        String tempid = UUID.randomUUID().toString();
         try {
-            trans.getClass()
-                    .getDeclaredMethod(method, String.class, String[].class)
-                    .invoke(trans, "idx:" + id, keys);
+            // 将给定多个单词对应的集合进行交集计算，将计算结果存储到一个临时集合中
+            ReflectionUtils.invokeMethod(trans, method,
+                    new Class[]{String.class, String[].class}, new Object[]{"idx:" + tempid, keys});
+
+//            trans.getClass()
+//                    .getDeclaredMethod(method, new Class[]{String.class, String[].class})
+//                    .invoke(trans, "idx:" + id, keys); // sinterstore  命令 将keys所有集合元素保存到 idx：id中
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        trans.expire("idx:" + id, ttl);
-        return id;
+        trans.expire("idx:" + tempid, ttl);
+        return tempid;
     }
 
+    // 查询交集
     public String intersect(Transaction trans, int ttl, String... items) {
         return setCommon(trans, "sinterstore", ttl, items);
     }
 
+    // 并集
     public String union(Transaction trans, int ttl, String... items) {
         return setCommon(trans, "sunionstore", ttl, items);
     }
 
+    // 差集
     public String difference(Transaction trans, int ttl, String... items) {
         return setCommon(trans, "sdiffstore", ttl, items);
     }
@@ -386,9 +415,12 @@ public class Chapter07 {
 
         String id = UUID.randomUUID().toString();
         try {
-            trans.getClass()
-                    .getDeclaredMethod(method, String.class, ZParams.class, String[].class)
-                    .invoke(trans, "idx:" + id, params, keys);
+
+            ReflectionUtils.invokeMethod(trans,  method, new Class[]{String.class,ZParams.class,String[].class },new Object[]{"idx:" + id, params, keys});
+
+//            trans.getClass()
+//                    .getDeclaredMethod(method, String.class, ZParams.class, String[].class)
+//                    .invoke(trans, "idx:" + id, params, keys);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -408,7 +440,7 @@ public class Chapter07 {
 
     public Query parse(String queryString) {
         Query query = new Query();
-        Set<String> current = new HashSet<String>();
+        Set<String> current = new HashSet<>();
         Matcher matcher = QUERY_RE.matcher(queryString.toLowerCase());
         while (matcher.find()) {
             String word = matcher.group().trim();
@@ -445,9 +477,9 @@ public class Chapter07 {
             return null;
         }
 
-        List<String> toIntersect = new ArrayList<String>();
+        List<String> toIntersect = new ArrayList<>();
         for (List<String> syn : query.all) {
-            if (syn.size() > 1) {
+            if (syn.size() > 1) {// 同义词多个的话进行并集计算
                 Transaction trans = conn.multi();
                 toIntersect.add(union(trans, ttl, syn.toArray(new String[syn.size()])));
                 trans.exec();
@@ -467,11 +499,10 @@ public class Chapter07 {
         }
 
         if (!query.unwanted.isEmpty()) {
-            String[] keys = query.unwanted
-                    .toArray(new String[query.unwanted.size() + 1]);
+            String[] keys = query.unwanted.toArray(new String[query.unwanted.size() + 1]);
             keys[keys.length - 1] = intersectResult;
             Transaction trans = conn.multi();
-            intersectResult = difference(trans, ttl, keys);
+            intersectResult = difference(trans, ttl, keys); // 从交集结果里移除 不需要的结果 然后返回搜索结果
             trans.exec();
         }
 
@@ -522,8 +553,7 @@ public class Chapter07 {
 
         String[] keys = new String[]{id, "sort:update", "sort:votes"};
         Transaction trans = conn.multi();
-        id = zintersect(
-                trans, ttl, new ZParams().weights(0, updateWeight, voteWeight), keys);
+        id = zintersect(trans, ttl, new ZParams().weightsByDouble(0, updateWeight, voteWeight), keys);
 
         trans.zcard("idx:" + id);
         if (desc) {
@@ -645,7 +675,7 @@ public class Chapter07 {
         String matchedAds = matchLocation(trans, locations);
 
         String baseEcpm = zintersect(
-                trans, 30, new ZParams().weights(0, 1), matchedAds, "ad:value:");
+                trans, 30, new ZParams().weightsByDouble(0, 1), matchedAds, "ad:value:");
 
         Pair<Set<String>, String> result = finishScoring(
                 trans, matchedAds, baseEcpm, content);
@@ -677,7 +707,7 @@ public class Chapter07 {
 
     public Pair<Set<String>, String> finishScoring(
             Transaction trans, String matched, String base, String content) {
-        Map<String, Integer> bonusEcpm = new HashMap<String, Integer>();
+        Map<String, Integer> bonusEcpm = new HashMap<>();
         Set<String> words = tokenize(content);
         for (String word : words) {
             String wordBonus = zintersect(
@@ -688,7 +718,7 @@ public class Chapter07 {
         if (bonusEcpm.size() > 0) {
 
             String[] keys = new String[bonusEcpm.size()];
-            int[] weights = new int[bonusEcpm.size()];
+            double[] weights = new double[bonusEcpm.size()];
             int index = 0;
             for (Map.Entry<String, Integer> bonus : bonusEcpm.entrySet()) {
                 keys[index] = bonus.getKey();
@@ -696,14 +726,14 @@ public class Chapter07 {
                 index++;
             }
 
-            ZParams minParams = new ZParams().aggregate(ZParams.Aggregate.MIN).weights(weights);
+            ZParams minParams = new ZParams().aggregate(ZParams.Aggregate.MIN).weightsByDouble(weights);
             String minimum = zunion(trans, 30, minParams, keys);
 
-            ZParams maxParams = new ZParams().aggregate(ZParams.Aggregate.MAX).weights(weights);
+            ZParams maxParams = new ZParams().aggregate(ZParams.Aggregate.MAX).weightsByDouble(weights);
             String maximum = zunion(trans, 30, maxParams, keys);
 
             String result = zunion(
-                    trans, 30, new ZParams().weights(2, 1, 1), base, minimum, maximum);
+                    trans, 30, new ZParams().weightsByDouble(2, 1, 1), base, minimum, maximum);
             return new Pair<Set<String>, String>(words, result);
         }
         return new Pair<Set<String>, String>(words, base);
@@ -877,7 +907,7 @@ public class Chapter07 {
 
     public Set<String> findJobs(Jedis conn, String... candidateSkills) {
         String[] keys = new String[candidateSkills.length];
-        int[] weights = new int[candidateSkills.length];
+        double[] weights = new double[candidateSkills.length];
         for (int i = 0; i < candidateSkills.length; i++) {
             keys[i] = "skill:" + candidateSkills[i];
             weights[i] = 1;
@@ -885,9 +915,9 @@ public class Chapter07 {
 
         Transaction trans = conn.multi();
         String jobScores = zunion(
-                trans, 30, new ZParams().weights(weights), keys);
+                trans, 30, new ZParams().weightsByDouble(weights), keys);
         String finalResult = zintersect(
-                trans, 30, new ZParams().weights(-1, 1), jobScores, "jobs:req");
+                trans, 30, new ZParams().weightsByDouble(-1, 1), jobScores, "jobs:req");
         trans.exec();
 
         return conn.zrangeByScore("idx:" + finalResult, 0, 0);
@@ -898,8 +928,8 @@ public class Chapter07 {
     }
 
     public class Query {
-        public final List<List<String>> all = new ArrayList<List<String>>();
-        public final Set<String> unwanted = new HashSet<String>();
+        public final List<List<String>> all = new ArrayList<>();
+        public final Set<String> unwanted = new HashSet<>();
     }
 
     public class SearchResult {

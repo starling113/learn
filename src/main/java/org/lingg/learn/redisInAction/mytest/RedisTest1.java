@@ -3,11 +3,14 @@ package org.lingg.learn.redisInAction.mytest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.lingg.learn.redisInAction.book.RedisConst;
+import org.springframework.data.redis.core.RedisCommand;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
 
+import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -77,6 +80,54 @@ public class RedisTest1 {
     }
 
 
+    @Test
+    public void testReflect() throws NoSuchMethodException {
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
 
+        Transaction trans = conn.multi();
+//        Method method = trans.getClass().getDeclaredMethod("close", null);
+//
+//        System.out.println(method);
+
+        System.out.println(conn.multi());
+
+//        Method[] methods = trans.getClass().get
+//        for(Method m : methods){
+//            System.out.println(m);
+//        }
+
+
+//        // 将给定多个单词对应的集合进行交集计算，将计算结果存储到一个临时集合中
+//        trans.getClass()
+//                .getDeclaredMethod(method, new Class[]{String.class, String[].class})
+//                .invoke(trans, "idx:" + id, keys); // sinterstore  命令 将keys所有集合元素保存到 idx：id中
+
+    }
+
+
+    @Test
+    public void testSet(){
+
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
+
+
+        //String set(String key, String value, String nxxx, String expx, long time);
+
+//        String result = this.jedis.set(LOCK_PREFIX + key, request, SET_IF_NOT_EXIST, SET_WITH_EXPIRE_TIME, 10* TIME);
+//        if (LOCK_MSG.equals(result)){
+//            return true ;
+//        }else {
+//            return false ;
+//        }
+
+        System.out.println(conn.set("name", "jack"));
+        System.out.println(conn.set("name", "jack", "NX"));
+        System.out.println(conn.set("name", "jack", "","",23));
+        //System.out.println(conn.set("name", "jack"));
+
+        conn.close();
+    }
 
 }
