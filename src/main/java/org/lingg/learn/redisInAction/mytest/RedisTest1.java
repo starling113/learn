@@ -130,4 +130,11 @@ public class RedisTest1 {
         conn.close();
     }
 
+    @Test
+    public void test2(){
+        // 返回 hashcode ，无论有没有重新hashcode方法，均与默认的方法 hashCode() 返回的代码一样
+        System.out.println(System.identityHashCode("ss"));
+        System.out.println("ss".hashCode());
+    }
+
 }

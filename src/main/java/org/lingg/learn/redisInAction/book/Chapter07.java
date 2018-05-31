@@ -51,8 +51,8 @@ public class Chapter07 {
 //        testSetOperations(conn);
 //        testParseQuery(conn);
 //        testParseAndSearch(conn);
-//        testSearchWithSort(conn);
-        testSearchWithZsort(conn);
+        testSearchWithSort(conn);
+//        testSearchWithZsort(conn);
 //        conn.flushDB();
 //
 //        testStringToScore(conn);
@@ -210,18 +210,19 @@ public class Chapter07 {
         System.out.println("\n----- testSearchWithZsort -----");
         System.out.println("And now let's test searching with sorting via zset...");
 
-        indexDocument(conn, "test", CONTENT);
-        indexDocument(conn, "test2", CONTENT);
+        indexDocument(conn, "文章A", CONTENT);
+        indexDocument(conn, "文章B", CONTENT);
 
-        conn.zadd("idx:sort:update", 12345, "test");
-        conn.zadd("idx:sort:update", 54321, "test2");
-        conn.zadd("idx:sort:votes", 10, "test");
-        conn.zadd("idx:sort:votes", 1, "test2");
+        conn.zadd("idx:sort:update", 12345, "文章A");//  文档的更新时间
+        conn.zadd("idx:sort:update", 54321, "文章B");
+        conn.zadd("idx:sort:votes", 10, "文章A"); // 文档的投票数
+        conn.zadd("idx:sort:votes", 1, "文章B");
 
         Map<String, Integer> weights = new HashMap<>();
         weights.put("update", 1);
         weights.put("vote", 0);
-        SearchResult result = searchAndZsort(conn, "content", false, weights);
+        SearchResult result = null;
+        result = searchAndZsort(conn, "content", false, weights);
         System.out.println(result.results.get(0));
         System.out.println(result.results.get(1));
 
