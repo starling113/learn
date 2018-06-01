@@ -51,11 +51,11 @@ public class Chapter07 {
 //        testSetOperations(conn);
 //        testParseQuery(conn);
 //        testParseAndSearch(conn);
-        testSearchWithSort(conn);
+//        testSearchWithSort(conn);
 //        testSearchWithZsort(conn);
 //        conn.flushDB();
 //
-//        testStringToScore(conn);
+        testStringToScore(conn);
 //        testIndexAndTargetAds(conn);
 //        testIsQualifiedForJob(conn);
 //        testIndexAndFindJobs(conn);
@@ -195,9 +195,11 @@ public class Chapter07 {
         values.put("id", "1");
         conn.hmset("kb:doc:documentB", values);
 
-        SearchResult result = searchAndSort(conn, "content", "-updated");
+        SearchResult result = searchAndSort(conn, "content,look", "-updated");
         System.out.println(result.results.get(0));
         System.out.println(result.results.get(1));
+
+        System.out.println("---------------------");
 
         result = searchAndSort(conn, "content", "-id");
         System.out.println(result.results.get(0));
@@ -218,19 +220,26 @@ public class Chapter07 {
         conn.zadd("idx:sort:votes", 10, "文章A"); // 文档的投票数
         conn.zadd("idx:sort:votes", 1, "文章B");
 
+        System.out.println("---------------------------");
+
         Map<String, Integer> weights = new HashMap<>();
         weights.put("update", 1);
         weights.put("vote", 0);
         SearchResult result = null;
-        result = searchAndZsort(conn, "content", false, weights);
+        // 通过SortedSet集合运算，运算时控制Weight参数来控制使用哪个字段进行排序，升序降序通过zrange zrevrange 来控制
+        result = searchAndZsort(conn, "content+look+random,+indexed", false, weights);
         System.out.println(result.results.get(0));
         System.out.println(result.results.get(1));
+
+        System.out.println("---------------------------");
 
         weights.put("update", 0);
         weights.put("vote", 1);
         result = searchAndZsort(conn, "content", false, weights);
         System.out.println(result.results.get(0));
         System.out.println(result.results.get(1));
+
+        System.out.println("---------------------------");
         System.out.println("Which passed!");
     }
 
@@ -239,7 +248,7 @@ public class Chapter07 {
 
         String[] words = "these are some words that will be sorted".split(" ");
 
-        List<WordScore> pairs = new ArrayList<WordScore>();
+        List<WordScore> pairs = new ArrayList<>();
         for (String word : words) {
             pairs.add(new WordScore(word, stringToScore(word)));
         }
@@ -365,6 +374,7 @@ public class Chapter07 {
         Transaction trans = conn.multi();
         for (String word : words) {
             trans.sadd("idx:" + word, docid);
+            System.out.println("idx:" + word +" = "+ docid);
         }
         return trans.exec().size();
     }
@@ -377,7 +387,7 @@ public class Chapter07 {
 
         String tempid = UUID.randomUUID().toString();
         try {
-            // 将给定多个单词对应的集合进行交集计算，将计算结果存储到一个临时集合中
+            // 将给定多个单词对应的集合进行交集计算，将计算结果存储到一个临时集合中,key 为  "idx:" + tempid   key对应的值为文章列表
             ReflectionUtils.invokeMethod(trans, method,
                     new Class[]{String.class, String[].class}, new Object[]{"idx:" + tempid, keys});
 
@@ -445,6 +455,7 @@ public class Chapter07 {
         Matcher matcher = QUERY_RE.matcher(queryString.toLowerCase());
         while (matcher.find()) {
             String word = matcher.group().trim();
+            System.err.println("word : " + word);
             char prefix = word.charAt(0);
             if (prefix == '+' || prefix == '-') {
                 word = word.substring(1);
@@ -479,23 +490,25 @@ public class Chapter07 {
         }
 
         List<String> toIntersect = new ArrayList<>();
+        // 多个条件
         for (List<String> syn : query.all) {
             if (syn.size() > 1) {// 同义词多个的话进行并集计算
                 Transaction trans = conn.multi();
+                // key为 idx：tempId  set的元素是进行集合运算后的结果
                 toIntersect.add(union(trans, ttl, syn.toArray(new String[syn.size()])));
                 trans.exec();
             } else {
-                toIntersect.add(syn.get(0));
+                toIntersect.add(syn.get(0)); // 只有一个单词，直接使用此单词
             }
         }
 
+        //
         String intersectResult = null;
-        if (toIntersect.size() > 1) {
+        if (toIntersect.size() > 1) {// 查询的结果（文章列表）不止一个，进行交集计算
             Transaction trans = conn.multi();
-            intersectResult = intersect(
-                    trans, ttl, toIntersect.toArray(new String[toIntersect.size()]));
+            intersectResult = intersect(trans, ttl, toIntersect.toArray(new String[toIntersect.size()]));
             trans.exec();
-        } else {
+        } else {// 只有一个，直接使用
             intersectResult = toIntersect.get(0);
         }
 
@@ -516,7 +529,8 @@ public class Chapter07 {
         if (desc) {
             sort = sort.substring(1);
         }
-        boolean alpha = !"updated".equals(sort) && !"id".equals(sort);
+        boolean alpha = !"updated".equals(sort) && !"id".equals(sort); // 是否使用字母排序
+        // http://redisdoc.com/key/sort.html#get-by   使用外部键来排序
         String by = "kb:doc:*->" + sort;
 
         String id = parseAndSearch(conn, queryString, 300);
