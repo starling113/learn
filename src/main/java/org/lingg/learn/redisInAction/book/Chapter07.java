@@ -55,8 +55,8 @@ public class Chapter07 {
 //        testSearchWithZsort(conn);
 //        conn.flushDB();
 //
-        testStringToScore(conn);
-//        testIndexAndTargetAds(conn);
+//        testStringToScore(conn);
+        testIndexAndTargetAds(conn);
 //        testIsQualifiedForJob(conn);
 //        testIndexAndFindJobs(conn);
     }
@@ -100,20 +100,18 @@ public class Chapter07 {
         System.out.println(test.equals(conn.smembers("idx:" + id)));
 
         trans = conn.multi();
-        id = intersect(trans, 30, new String[]{ "aab", "bbc"}); //同时包含"aab", "bbc"的文章
+        id = intersect(trans, 30, new String[]{"aab", "bbc"}); //同时包含"aab", "bbc"的文章
         trans.exec();
         System.out.println("交集 : " + conn.smembers("idx:" + id));
         System.out.println(conn.smembers("idx:" + id).isEmpty());
 
 
-
         trans = conn.multi();
         //并集sunionstore
-        id = union(trans, 30,  new String[]{"aab", "bbc","because"});//包含aab或者bbc的文章  because属于忽略的单词
+        id = union(trans, 30, new String[]{"aab", "bbc", "because"});//包含aab或者bbc的文章  because属于忽略的单词
         trans.exec();
         System.out.println("并集 : " + conn.smembers("idx:" + id));
         System.out.println(test.equals(conn.smembers("idx:" + id)));
-
 
 
         trans = conn.multi();
@@ -138,16 +136,16 @@ public class Chapter07 {
         for (int i = 0; i < words.length; i++) {
             List<String> word = new ArrayList<>();
             word.add(words[i]);
-            System.out.println( word.equals(query.all.get(i)));
+            System.out.println(word.equals(query.all.get(i)));
         }
-        System.out.println( query.unwanted.isEmpty());
+        System.out.println(query.unwanted.isEmpty());
 
         queryString = "test +query without -stopwords";
         query = parse(queryString);
-        System.out.println( "test".equals(query.all.get(0).get(0)));
-        System.out.println(  "query".equals(query.all.get(0).get(1)));
-        System.out.println(  "without".equals(query.all.get(1).get(0)));
-        System.out.println(  "stopwords".equals(query.unwanted.toArray()[0]));
+        System.out.println("test".equals(query.all.get(0).get(0)));
+        System.out.println("query".equals(query.all.get(0).get(1)));
+        System.out.println("without".equals(query.all.get(1).get(0)));
+        System.out.println("stopwords".equals(query.unwanted.toArray()[0]));
     }
 
     public void testParseAndSearch(Jedis conn) {
@@ -168,13 +166,13 @@ public class Chapter07 {
         System.out.println("content +indexed random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed +random", 30);
-        System.out.println( "content indexed +random :  " + conn.smembers("idx:" + id));
+        System.out.println("content indexed +random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed -random", 30);
-        System.out.println( "content indexed -random :  " + conn.smembers("idx:" + id));
+        System.out.println("content indexed -random :  " + conn.smembers("idx:" + id));
 
         id = parseAndSearch(conn, "content indexed +random", 30);
-        System.out.println( "content indexed +random :  " + conn.smembers("idx:" + id));
+        System.out.println("content indexed +random :  " + conn.smembers("idx:" + id));
 
         System.out.println("Which passed!");
     }
@@ -374,7 +372,7 @@ public class Chapter07 {
         Transaction trans = conn.multi();
         for (String word : words) {
             trans.sadd("idx:" + word, docid);
-            System.out.println("idx:" + word +" = "+ docid);
+            System.out.println("idx:" + word + " = " + docid);
         }
         return trans.exec().size();
     }
@@ -427,7 +425,7 @@ public class Chapter07 {
         String id = UUID.randomUUID().toString();
         try {
 
-            ReflectionUtils.invokeMethod(trans,  method, new Class[]{String.class,ZParams.class,String[].class },new Object[]{"idx:" + id, params, keys});
+            ReflectionUtils.invokeMethod(trans, method, new Class[]{String.class, ZParams.class, String[].class}, new Object[]{"idx:" + id, params, keys});
 
 //            trans.getClass()
 //                    .getDeclaredMethod(method, String.class, ZParams.class, String[].class)
@@ -594,7 +592,7 @@ public class Chapter07 {
             string = string.toLowerCase();
         }
 
-        List<Integer> pieces = new ArrayList<Integer>();
+        List<Integer> pieces = new ArrayList<>();
         for (int i = 0; i < Math.min(string.length(), 6); i++) {
             pieces.add((int) string.charAt(i));
         }
@@ -607,8 +605,9 @@ public class Chapter07 {
             score = score * 257 + piece + 1;
         }
 
-        return score * 2 + (string.length() > 6 ? 1 : 0);
+        return score << 1 + (string.length() > 6 ? 1 : 0); // 分数*2 ，然后使用最后一位来表示字符串长度是否超过6
     }
+
 
     public long stringToScoreGeneric(String string, Map<Integer, Integer> mapping) {
         int length = (int) (52 / (Math.log(mapping.size()) / Math.log(2)));
@@ -645,9 +644,7 @@ public class Chapter07 {
         return conn.zadd(name, prieces);
     }
 
-    public void indexAd(
-            Jedis conn, String id, String[] locations,
-            String content, Ecpm type, double value) {
+    public void indexAd(Jedis conn, String id, String[] locations, String content, Ecpm type, double value) {
         Transaction trans = conn.multi();
 
         for (String location : locations) {
