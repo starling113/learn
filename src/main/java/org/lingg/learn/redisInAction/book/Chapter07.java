@@ -56,9 +56,9 @@ public class Chapter07 {
 //        conn.flushDB();
 //
 //        testStringToScore(conn);
-        testIndexAndTargetAds(conn);
+//        testIndexAndTargetAds(conn);
 //        testIsQualifiedForJob(conn);
-//        testIndexAndFindJobs(conn);
+        testIndexAndFindJobs(conn);
     }
 
     public void testIndexDocument(Jedis conn) {
@@ -303,35 +303,36 @@ public class Chapter07 {
         Pair<Long, String> result = targetAds(conn, usa, CONTENT);
         long targetId = result.getValue0();
         String adId = result.getValue1();
-        assert "1".equals(result.getValue1());
+        System.out.println(result.getValue1());
+
 
         result = targetAds(conn, new String[]{"VA"}, "wooooo");
-        assert "2".equals(result.getValue1());
+        System.out.println(result.getValue1());
 
         Iterator<Tuple> range = conn.zrangeWithScores("idx:ad:value:", 0, -1).iterator();
-        assert new Tuple("2", 0.125).equals(range.next());
-        assert new Tuple("1", 0.25).equals(range.next());
+        System.out.println(new Tuple("2", 0.125).equals(range.next()));
+        System.out.println(new Tuple("1", 0.25).equals(range.next()));
 
         range = conn.zrangeWithScores("ad:base_value:", 0, -1).iterator();
-        assert new Tuple("2", 0.125).equals(range.next());
-        assert new Tuple("1", 0.25).equals(range.next());
+        System.out.println(new Tuple("2", 0.125).equals(range.next()));
+        System.out.println(new Tuple("1", 0.25).equals(range.next()));
 
         recordClick(conn, targetId, adId, false);
 
         range = conn.zrangeWithScores("idx:ad:value:", 0, -1).iterator();
-        assert new Tuple("2", 0.125).equals(range.next());
-        assert new Tuple("1", 2.5).equals(range.next());
+        System.out.println(new Tuple("2", 0.125).equals(range.next()));
+        System.out.println(new Tuple("1", 2.5).equals(range.next()));
 
         range = conn.zrangeWithScores("ad:base_value:", 0, -1).iterator();
-        assert new Tuple("2", 0.125).equals(range.next());
-        assert new Tuple("1", 0.25).equals(range.next());
+        System.out.println(new Tuple("2", 0.125).equals(range.next()));
+        System.out.println(new Tuple("1", 0.25).equals(range.next()));
     }
 
     public void testIsQualifiedForJob(Jedis conn) {
         System.out.println("\n----- testIsQualifiedForJob -----");
         addJob(conn, "test", "q1", "q2", "q3");
-        assert isQualified(conn, "test", "q1", "q3", "q2");
-        assert !isQualified(conn, "test", "q1", "q2");
+        System.out.println(isQualified(conn, "test", "q1", "q3", "q2"));
+        System.out.println(isQualified(conn, "test", "q1", "q2"));
     }
 
     public void testIndexAndFindJobs(Jedis conn) {
@@ -340,18 +341,13 @@ public class Chapter07 {
         indexJob(conn, "test2", "q1", "q3", "q4");
         indexJob(conn, "test3", "q1", "q3", "q5");
 
-        assert findJobs(conn, "q1").size() == 0;
+        System.out.println(findJobs(conn, "q1"));
 
-        Iterator<String> result = findJobs(conn, "q1", "q3", "q4").iterator();
-        assert "test2".equals(result.next());
+        System.out.println(findJobs(conn, "q1", "q3", "q4"));
 
-        result = findJobs(conn, "q1", "q3", "q5").iterator();
-        assert "test3".equals(result.next());
+        System.out.println(findJobs(conn, "q1", "q3", "q5"));
 
-        result = findJobs(conn, "q1", "q2", "q3", "q4", "q5").iterator();
-        assert "test1".equals(result.next());
-        assert "test2".equals(result.next());
-        assert "test3".equals(result.next());
+        System.out.println(findJobs(conn, "q1", "q2", "q3", "q4", "q5"));
     }
 
     public Set<String> tokenize(String content) {
@@ -689,8 +685,7 @@ public class Chapter07 {
         String baseEcpm = zintersect(
                 trans, 30, new ZParams().weightsByDouble(0, 1), matchedAds, "ad:value:");
 
-        Pair<Set<String>, String> result = finishScoring(
-                trans, matchedAds, baseEcpm, content);
+        Pair<Set<String>, String> result = finishScoring(trans, matchedAds, baseEcpm, content);
 
         trans.incr("ads:served:");
         trans.zrevrange("idx:" + result.getValue1(), 0, 0);
@@ -722,8 +717,7 @@ public class Chapter07 {
         Map<String, Integer> bonusEcpm = new HashMap<>();
         Set<String> words = tokenize(content);
         for (String word : words) {
-            String wordBonus = zintersect(
-                    trans, 30, new ZParams().weights(0, 1), matched, word);
+            String wordBonus = zintersect(trans, 30, new ZParams().weightsByDouble(0, 1), matched, word);
             bonusEcpm.put(wordBonus, 1);
         }
 
@@ -899,7 +893,9 @@ public class Chapter07 {
             trans.sadd(temp, skill);
         }
         trans.expire(temp, 5);
-        trans.sdiff("job:" + jobId, temp);
+
+        // 返回一个集合的全部成员，该集合是所有给定集合之间的差集
+        trans.sdiff("job:" + jobId, temp); // "job:" + jobId 集合中有，但是temp集合中没有   即为缺少的技能
 
         List<Object> response = trans.exec();
         Set<String> diff = (Set<String>) response.get(response.size() - 1);
@@ -922,14 +918,12 @@ public class Chapter07 {
         double[] weights = new double[candidateSkills.length];
         for (int i = 0; i < candidateSkills.length; i++) {
             keys[i] = "skill:" + candidateSkills[i];
-            weights[i] = 1;
+            weights[i] = 1.0;
         }
 
         Transaction trans = conn.multi();
-        String jobScores = zunion(
-                trans, 30, new ZParams().weightsByDouble(weights), keys);
-        String finalResult = zintersect(
-                trans, 30, new ZParams().weightsByDouble(-1, 1), jobScores, "jobs:req");
+        String jobScores = zunion(trans, 30, new ZParams().weightsByDouble(weights), keys);
+        String finalResult = zintersect(trans, 30, new ZParams().weightsByDouble(-1, 1), jobScores, "jobs:req");
         trans.exec();
 
         return conn.zrangeByScore("idx:" + finalResult, 0, 0);
