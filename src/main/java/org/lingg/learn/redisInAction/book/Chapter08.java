@@ -1,5 +1,6 @@
 package org.lingg.learn.redisInAction.book;
 
+import org.springframework.data.redis.connection.jedis.JedisUtils;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Transaction;
@@ -13,101 +14,94 @@ public class Chapter08 {
     private static int POSTS_PER_PASS = 1000;
     private static int REFILL_USERS_STEP = 50;
 
-    public static final void main(String[] args)
-        throws InterruptedException
-    {
+    public static final void main(String[] args) throws InterruptedException {
         new Chapter08().run();
     }
 
-    public void run()
-        throws InterruptedException
-    {
-        Jedis conn = new Jedis("localhost");
-        conn.select(15);
+    public void run() throws InterruptedException {
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
         conn.flushDB();
 
         testCreateUserAndStatus(conn);
-        conn.flushDB();
-
-        testFollowUnfollowUser(conn);
-        conn.flushDB();
-
-        testSyndicateStatus(conn);
-        conn.flushDB();
-
-        testRefillTimeline(conn);
+//        conn.flushDB();
+//
+//        testFollowUnfollowUser(conn);
+//        conn.flushDB();
+//
+//        testSyndicateStatus(conn);
+//        conn.flushDB();
+//
+//        testRefillTimeline(conn);
     }
 
     public void testCreateUserAndStatus(Jedis conn) {
         System.out.println("\n----- testCreateUserAndStatus -----");
 
-        assert createUser(conn, "TestUser", "Test User") == 1;
-        assert createUser(conn, "TestUser", "Test User2") == -1;
+        System.out.println(createUser(conn, "TestUser", "Test User")); // 1
+        System.out.println(createUser(conn, "TestUser", "Test User2")); // -1
 
-        assert createStatus(conn, 1, "This is a new status message") == 1;
-        assert "1".equals(conn.hget("user:1", "posts"));
+        System.out.println(createStatus(conn, 1, "This is a new status message")); //1
+        System.out.println(conn.hget("user:1", "posts")); //1
     }
 
     public void testFollowUnfollowUser(Jedis conn) {
         System.out.println("\n----- testFollowUnfollowUser -----");
 
-        assert createUser(conn, "TestUser", "Test User") == 1;
-        assert createUser(conn, "TestUser2", "Test User2") == 2;
+        System.out.println(createUser(conn, "TestUser", "Test User"));
+        System.out.println(createUser(conn, "TestUser2", "Test User2"));
 
-        assert followUser(conn, 1, 2);
-        assert conn.zcard("followers:2") == 1;
-        assert conn.zcard("followers:1") == 0;
-        assert conn.zcard("following:1") == 1;
-        assert conn.zcard("following:2") == 0;
-        assert "1".equals(conn.hget("user:1", "following"));
-        assert "0".equals(conn.hget("user:2", "following"));
-        assert "0".equals(conn.hget("user:1", "followers"));
-        assert "1".equals(conn.hget("user:2", "followers"));
+        System.out.println(followUser(conn, 1, 2));
+        System.out.println(conn.zcard("followers:2"));// == 1;
+        System.out.println(conn.zcard("followers:1"));// == 0;
+        System.out.println(conn.zcard("following:1"));// == 1;
+        System.out.println(conn.zcard("following:2"));// == 0;
+        System.out.println(conn.hget("user:1", "following"));//1
+        System.out.println(conn.hget("user:2", "following"));//0
+        System.out.println(conn.hget("user:1", "followers"));//0
+        System.out.println(conn.hget("user:2", "followers"));//1
 
-        assert !unfollowUser(conn, 2, 1);
-        assert unfollowUser(conn, 1, 2);
-        assert conn.zcard("followers:2") == 0;
-        assert conn.zcard("followers:1") == 0;
-        assert conn.zcard("following:1") == 0;
-        assert conn.zcard("following:2") == 0;
-        assert "0".equals(conn.hget("user:1", "following"));
-        assert "0".equals(conn.hget("user:2", "following"));
-        assert "0".equals(conn.hget("user:1", "followers"));
-        assert "0".equals(conn.hget("user:2", "followers"));
+        System.out.println(unfollowUser(conn, 2, 1));//false
+        System.out.println(unfollowUser(conn, 1, 2));//true
+        System.out.println(conn.zcard("followers:2"));// == 0;
+        System.out.println(conn.zcard("followers:1"));// == 0;
+        System.out.println(conn.zcard("following:1"));//== 0;
+        System.out.println(conn.zcard("following:2"));//== 0;
+        System.out.println(conn.hget("user:1", "following"));//== 0;
+        System.out.println(conn.hget("user:2", "following"));//== 0;
+        System.out.println(conn.hget("user:1", "followers"));//== 0;
+        System.out.println(conn.hget("user:2", "followers"));//== 0;
     }
 
-    public void testSyndicateStatus(Jedis conn)
-        throws InterruptedException
-    {
+    public void testSyndicateStatus(Jedis conn) throws InterruptedException {
         System.out.println("\n----- testSyndicateStatus -----");
 
-        assert createUser(conn, "TestUser", "Test User") == 1;
-        assert createUser(conn, "TestUser2", "Test User2") == 2;
+        System.out.println("userid = " + createUser(conn, "TestUser", "Test User"));//== 1;
+        System.out.println("userid = " + createUser(conn, "TestUser2", "Test User2"));// == 2;
 
-        assert followUser(conn, 1, 2);
-        assert conn.zcard("followers:2") == 1;
-        assert "1".equals(conn.hget("user:1", "following"));
-        assert postStatus(conn, 2, "this is some message content") == 1;
-        assert getStatusMessages(conn, 1).size() == 1;
+        System.out.println(followUser(conn, 1, 2));
+        System.out.println(conn.zcard("followers:2"));//== 1;
 
-        for(int i = 3; i < 11; i++) {
-            assert createUser(conn, "TestUser" + i, "Test User" + i) == i;
+        System.out.println(conn.hget("user:1", "following")); //1
+        System.out.println(postStatus(conn, 2, "this is some message content"));//== 1;
+        System.out.println(getStatusMessages(conn, 1).size());//== 1;
+
+        for (int i = 3; i < 11; i++) {
+            System.out.println(createUser(conn, "TestUser" + i, "Test User" + i));// == i;
             followUser(conn, i, 2);
         }
 
         POSTS_PER_PASS = 5;
 
-        assert postStatus(conn, 2, "this is some other message content") == 2;
+        System.out.println(postStatus(conn, 2, "this is some other message content"));// == 2;
         Thread.sleep(100);
-        assert getStatusMessages(conn, 9).size() == 2;
+        System.out.println(getStatusMessages(conn, 9).size());// == 2;
 
-        assert unfollowUser(conn, 1, 2);
-        assert getStatusMessages(conn, 1).size() == 0;
+        System.out.println(unfollowUser(conn, 1, 2));
+        System.out.println(getStatusMessages(conn, 1).size());//== 0;
     }
 
-    public void testRefillTimeline(Jedis conn)
-        throws InterruptedException
-    {
+    public void testRefillTimeline(Jedis conn) throws InterruptedException {
         System.out.println("\n----- testRefillTimeline -----");
 
         assert createUser(conn, "TestUser", "Test User") == 1;
@@ -130,13 +124,13 @@ public class Chapter08 {
         assert getStatusMessages(conn, 1).size() < 5;
 
         refillTimeline(conn, "following:1", "home:1");
-        List<Map<String,String>> messages = getStatusMessages(conn, 1);
+        List<Map<String, String>> messages = getStatusMessages(conn, 1);
         assert messages.size() == 5;
-        for (Map<String,String> message : messages) {
+        for (Map<String, String> message : messages) {
             assert "3".equals(message.get("uid"));
         }
 
-        long statusId = Long.valueOf(messages.get(messages.size() -1).get("id"));
+        long statusId = Long.valueOf(messages.get(messages.size() - 1).get("id"));
         assert deleteStatus(conn, 3, statusId);
         assert getStatusMessages(conn, 1).size() == 4;
         assert conn.zcard("home:1") == 5;
@@ -144,9 +138,7 @@ public class Chapter08 {
         assert conn.zcard("home:1") == 4;
     }
 
-    public String acquireLockWithTimeout(
-        Jedis conn, String lockName, int acquireTimeout, int lockTimeout)
-    {
+    public String acquireLockWithTimeout(Jedis conn, String lockName, int acquireTimeout, int lockTimeout) {
         String id = UUID.randomUUID().toString();
         lockName = "lock:" + lockName;
 
@@ -155,13 +147,13 @@ public class Chapter08 {
             if (conn.setnx(lockName, id) >= 1) {
                 conn.expire(lockName, lockTimeout);
                 return id;
-            }else if (conn.ttl(lockName) <= 0){
+            } else if (conn.ttl(lockName) <= 0) {
                 conn.expire(lockName, lockTimeout);
             }
 
-            try{
+            try {
                 Thread.sleep(1);
-            }catch(InterruptedException ie){
+            } catch (InterruptedException ie) {
                 Thread.interrupted();
             }
         }
@@ -179,7 +171,7 @@ public class Chapter08 {
                 List<Object> result = trans.exec();
                 // null response indicates that the transaction was aborted due
                 // to the watched key changing.
-                if (result == null){
+                if (result == null) {
                     continue;
                 }
                 return true;
@@ -192,31 +184,39 @@ public class Chapter08 {
         return false;
     }
 
-    public long createUser(Jedis conn, String login, String name) {
-        String llogin = login.toLowerCase();
-        String lock = acquireLockWithTimeout(conn, "user:" + llogin, 10, 1);
-        if (lock == null){
+    /**
+     * @param conn
+     * @param loginName
+     * @param userRealName
+     * @return 用户成功创建返回新的用户id  失败返回-1
+     */
+    public long createUser(Jedis conn, String loginName, String userRealName) {
+        String lowerLoginName = loginName.toLowerCase();
+        String lock = acquireLockWithTimeout(conn, "user:" + lowerLoginName, 10, 1);
+        if (lock == null) { // 获取不到锁（setnx），表示用户名已存在
             return -1;
         }
 
-        if (conn.hget("users:", llogin) != null) {
+        if (conn.hget("users:", lowerLoginName) != null) {
             return -1;
         }
 
-        long id = conn.incr("user:id:");
+        long id = conn.incr("user:id:"); // 产生新的用户id
         Transaction trans = conn.multi();
-        trans.hset("users:", llogin, String.valueOf(id));
-        Map<String,String> values = new HashMap<String,String>();
-        values.put("login", login);
+        trans.hset("users:", lowerLoginName, String.valueOf(id));
+
+        Map<String, String> values = new HashMap<String, String>();
+        values.put("login", loginName);
         values.put("id", String.valueOf(id));
-        values.put("name", name);
+        values.put("name", userRealName);
         values.put("followers", "0");
         values.put("following", "0");
         values.put("posts", "0");
         values.put("signup", String.valueOf(System.currentTimeMillis()));
+
         trans.hmset("user:" + id, values);
         trans.exec();
-        releaseLock(conn, "user:" + llogin, lock);
+        releaseLock(conn, "user:" + lowerLoginName, lock); //释放锁
         return id;
     }
 
@@ -234,20 +234,20 @@ public class Chapter08 {
         Transaction trans = conn.multi();
         trans.zadd(fkey1, now, String.valueOf(otherUid));
         trans.zadd(fkey2, now, String.valueOf(uid));
-        trans.zcard(fkey1);
-        trans.zcard(fkey2);
+        trans.zcard(fkey1);//我 关注的人数量
+        trans.zcard(fkey2);//关注我的人数量
         trans.zrevrangeWithScores("profile:" + otherUid, 0, HOME_TIMELINE_SIZE - 1);
 
         List<Object> response = trans.exec();
-        long following = (Long)response.get(response.size() - 3);
-        long followers = (Long)response.get(response.size() - 2);
-        Set<Tuple> statuses = (Set<Tuple>)response.get(response.size() - 1);
+        long following = (Long) response.get(response.size() - 3);
+        long followers = (Long) response.get(response.size() - 2);
+        Set<Tuple> statuses = (Set<Tuple>) response.get(response.size() - 1);
 
         trans = conn.multi();
         trans.hset("user:" + uid, "following", String.valueOf(following));
         trans.hset("user:" + otherUid, "followers", String.valueOf(followers));
         if (statuses.size() > 0) {
-            for (Tuple status : statuses){
+            for (Tuple status : statuses) {
                 trans.zadd("home:" + uid, status.getScore(), status.getElement());
             }
         }
@@ -274,14 +274,14 @@ public class Chapter08 {
         trans.zrevrange("profile:" + otherUid, 0, HOME_TIMELINE_SIZE - 1);
 
         List<Object> response = trans.exec();
-        long following = (Long)response.get(response.size() - 3);
-        long followers = (Long)response.get(response.size() - 2);
-        Set<String> statuses = (Set<String>)response.get(response.size() - 1);
+        long following = (Long) response.get(response.size() - 3);
+        long followers = (Long) response.get(response.size() - 2);
+        Set<String> statuses = (Set<String>) response.get(response.size() - 1);
 
         trans = conn.multi();
         trans.hset("user:" + uid, "following", String.valueOf(following));
         trans.hset("user:" + otherUid, "followers", String.valueOf(followers));
-        if (statuses.size() > 0){
+        if (statuses.size() > 0) {
             for (String status : statuses) {
                 trans.zrem("home:" + uid, status);
             }
@@ -294,23 +294,29 @@ public class Chapter08 {
     public long createStatus(Jedis conn, long uid, String message) {
         return createStatus(conn, uid, message, null);
     }
-    public long createStatus(
-        Jedis conn, long uid, String message, Map<String,String> data)
-    {
+
+    /**
+     * @param conn
+     * @param uid
+     * @param message
+     * @param data
+     * @return 发表的状态消息的id
+     */
+    public long createStatus(Jedis conn, long uid, String message, Map<String, String> data) {
         Transaction trans = conn.multi();
         trans.hget("user:" + uid, "login");
         trans.incr("status:id:");
 
         List<Object> response = trans.exec();
-        String login = (String)response.get(0);
-        long id = (Long)response.get(1);
+        String login = (String) response.get(0);
+        long id = (Long) response.get(1);
 
-        if (login == null) {
+        if (login == null) { // 用户id错误，未获取到用户
             return -1;
         }
 
-        if (data == null){
-            data = new HashMap<String,String>();
+        if (data == null) {
+            data = new HashMap<String, String>();
         }
         data.put("message", message);
         data.put("posted", String.valueOf(System.currentTimeMillis()));
@@ -320,7 +326,7 @@ public class Chapter08 {
 
         trans = conn.multi();
         trans.hmset("status:" + id, data);
-        trans.hincrBy("user:" + uid, "posts", 1);
+        trans.hincrBy("user:" + uid, "posts", 1); // 用户已发表的消息数+1
         trans.exec();
         return id;
     }
@@ -328,11 +334,10 @@ public class Chapter08 {
     public long postStatus(Jedis conn, long uid, String message) {
         return postStatus(conn, uid, message, null);
     }
-    public long postStatus(
-        Jedis conn, long uid, String message, Map<String,String> data)
-    {
+
+    public long postStatus(Jedis conn, long uid, String message, Map<String, String> data) {
         long id = createStatus(conn, uid, message, data);
-        if (id == -1){
+        if (id == -1) {
             return -1;
         }
 
@@ -348,31 +353,27 @@ public class Chapter08 {
         return id;
     }
 
-    public void syndicateStatus(
-        Jedis conn, long uid, long postId, long postTime, double start)
-    {
+    public void syndicateStatus(Jedis conn, long uid, long postId, long postTime, double start) {
         Set<Tuple> followers = conn.zrangeByScoreWithScores(
-            "followers:" + uid,
-            String.valueOf(start), "inf",
-            0, POSTS_PER_PASS);
+                "followers:" + uid,
+                String.valueOf(start), "inf",
+                0, POSTS_PER_PASS);
 
         Transaction trans = conn.multi();
-        for (Tuple tuple : followers){
+        for (Tuple tuple : followers) {
             String follower = tuple.getElement();
             start = tuple.getScore();
             trans.zadd("home:" + follower, postTime, String.valueOf(postId));
             trans.zrange("home:" + follower, 0, -1);
-            trans.zremrangeByRank(
-                "home:" + follower, 0, 0 - HOME_TIMELINE_SIZE - 1);
+            trans.zremrangeByRank("home:" + follower, 0, 0 - HOME_TIMELINE_SIZE - 1);
         }
         trans.exec();
 
         if (followers.size() >= POSTS_PER_PASS) {
-            try{
-                Method method = getClass().getDeclaredMethod(
-                    "syndicateStatus", Jedis.class, Long.TYPE, Long.TYPE, Long.TYPE, Double.TYPE);
+            try {
+                Method method = getClass().getDeclaredMethod("syndicateStatus", Jedis.class, Long.TYPE, Long.TYPE, Long.TYPE, Double.TYPE);
                 executeLater("default", method, uid, postId, postTime, start);
-            }catch(Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -385,7 +386,7 @@ public class Chapter08 {
             return false;
         }
 
-        try{
+        try {
             if (!String.valueOf(uid).equals(conn.hget(key, "uid"))) {
                 return false;
             }
@@ -398,31 +399,37 @@ public class Chapter08 {
             trans.exec();
 
             return true;
-        }finally{
+        } finally {
             releaseLock(conn, key, lock);
         }
     }
 
-    public List<Map<String,String>> getStatusMessages(Jedis conn, long uid) {
+    public List<Map<String, String>> getStatusMessages(Jedis conn, long uid) {
         return getStatusMessages(conn, uid, 1, 30);
     }
 
+    /**
+     * 从主时间线获取给定页数的最新状态消息
+     *
+     * @param conn
+     * @param uid
+     * @param page
+     * @param count
+     * @return
+     */
     @SuppressWarnings("unchecked")
-    public List<Map<String,String>> getStatusMessages(
-        Jedis conn, long uid, int page, int count)
-    {
-        Set<String> statusIds = conn.zrevrange(
-            "home:" + uid, (page - 1) * count, page * count - 1);
+    public List<Map<String, String>> getStatusMessages(Jedis conn, long uid, int page, int count) {
+        Set<String> statusIds = conn.zrevrange("home:" + uid, (page - 1) * count, page * count - 1);
 
         Transaction trans = conn.multi();
         for (String id : statusIds) {
             trans.hgetAll("status:" + id);
         }
 
-        List<Map<String,String>> statuses = new ArrayList<Map<String,String>>();
+        List<Map<String, String>> statuses = new ArrayList<Map<String, String>>();
         for (Object result : trans.exec()) {
-            Map<String,String> status = (Map<String,String>)result;
-            if (status != null && status.size() > 0){
+            Map<String, String> status = (Map<String, String>) result;
+            if (status != null && status.size() > 0) {
                 statuses.add(status);
             }
         }
@@ -434,28 +441,24 @@ public class Chapter08 {
     }
 
     @SuppressWarnings("unchecked")
-    public void refillTimeline(
-            Jedis conn, String incoming, String timeline, double start)
-    {
+    public void refillTimeline(Jedis conn, String incoming, String timeline, double start) {
         if (start == 0 && conn.zcard(timeline) >= 750) {
             return;
         }
 
-        Set<Tuple> users = conn.zrangeByScoreWithScores(
-            incoming, String.valueOf(start), "inf", 0, REFILL_USERS_STEP);
+        Set<Tuple> users = conn.zrangeByScoreWithScores(incoming, String.valueOf(start), "inf", 0, REFILL_USERS_STEP);
 
         Pipeline pipeline = conn.pipelined();
-        for (Tuple tuple : users){
+        for (Tuple tuple : users) {
             String uid = tuple.getElement();
             start = tuple.getScore();
-            pipeline.zrevrangeWithScores(
-                "profile:" + uid, 0, HOME_TIMELINE_SIZE - 1);
+            pipeline.zrevrangeWithScores("profile:" + uid, 0, HOME_TIMELINE_SIZE - 1);
         }
 
         List<Object> response = pipeline.syncAndReturnAll();
         List<Tuple> messages = new ArrayList<Tuple>();
         for (Object results : response) {
-            messages.addAll((Set<Tuple>)results);
+            messages.addAll((Set<Tuple>) results);
         }
 
         Collections.sort(messages);
@@ -471,11 +474,10 @@ public class Chapter08 {
         trans.exec();
 
         if (users.size() >= REFILL_USERS_STEP) {
-            try{
-                Method method = getClass().getDeclaredMethod(
-                    "refillTimeline", Jedis.class, String.class, String.class, Double.TYPE);
+            try {
+                Method method = getClass().getDeclaredMethod("refillTimeline", Jedis.class, String.class, String.class, Double.TYPE);
                 executeLater("default", method, incoming, timeline, start);
-            }catch(Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -484,17 +486,15 @@ public class Chapter08 {
     public void cleanTimelines(Jedis conn, long uid, long statusId) {
         cleanTimelines(conn, uid, statusId, 0, false);
     }
-    public void cleanTimelines(
-        Jedis conn, long uid, long statusId, double start, boolean onLists)
-    {
+
+    public void cleanTimelines(Jedis conn, long uid, long statusId, double start, boolean onLists) {
         String key = "followers:" + uid;
         String base = "home:";
         if (onLists) {
             key = "list:out:" + uid;
             base = "list:statuses:";
         }
-        Set<Tuple> followers = conn.zrangeByScoreWithScores(
-            key, String.valueOf(start), "inf", 0, POSTS_PER_PASS);
+        Set<Tuple> followers = conn.zrangeByScoreWithScores(key, String.valueOf(start), "inf", 0, POSTS_PER_PASS);
 
         Transaction trans = conn.multi();
         for (Tuple tuple : followers) {
@@ -505,18 +505,15 @@ public class Chapter08 {
         trans.exec();
 
         Method method = null;
-        try{
-            method = getClass().getDeclaredMethod(
-                "cleanTimelines", Jedis.class,
-                Long.TYPE, Long.TYPE, Double.TYPE, Boolean.TYPE);
-        }catch(Exception e){
+        try {
+            method = getClass().getDeclaredMethod("cleanTimelines", Jedis.class, Long.TYPE, Long.TYPE, Double.TYPE, Boolean.TYPE);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
         if (followers.size() >= POSTS_PER_PASS) {
             executeLater("default", method, uid, statusId, start, onLists);
-
-        }else if (!onLists) {
+        } else if (!onLists) {
             executeLater("default", method, uid, statusId, 0, true);
         }
     }
@@ -526,9 +523,7 @@ public class Chapter08 {
         thread.start();
     }
 
-    public class MethodThread
-        extends Thread
-    {
+    public class MethodThread extends Thread {
         private Object instance;
         private Method method;
         private Object[] args;
@@ -540,16 +535,16 @@ public class Chapter08 {
         }
 
         public void run() {
-            Jedis conn = new Jedis("localhost");
-            conn.select(15);
+            Jedis conn = new Jedis(RedisConst.redisHost);
+            conn.select(RedisConst.redisDbIndex);
 
             Object[] args = new Object[this.args.length + 1];
             System.arraycopy(this.args, 0, args, 1, this.args.length);
             args[0] = conn;
 
-            try{
+            try {
                 method.invoke(instance, args);
-            }catch(Exception e){
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
