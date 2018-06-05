@@ -57,36 +57,37 @@ public class Chapter09 {
         conn.select(RedisConst.redisDbIndex);
         conn.flushDB();
 
-        testLongZiplistPerformance(conn);
-        testShardKey(conn);
-        testShardedHash(conn);
-        testShardedSadd(conn);
-        testUniqueVisitors(conn);
+//        testLongZiplistPerformance(conn);
+//        testShardKey(conn);
+//        testShardedHash(conn);
+//        testShardedSadd(conn);
+//        testUniqueVisitors(conn);
         testUserLocation(conn);
     }
 
     public void testLongZiplistPerformance(Jedis conn) {
         System.out.println("\n----- testLongZiplistPerformance -----");
 
-        longZiplistPerformance(conn, "test", 5, 10, 10);
-        assert conn.llen("test") == 5;
+        System.out.println(longZiplistPerformance(conn, "test", 5, 10, 10));
+        System.out.println(conn.llen("test")); // == 5;
     }
 
+    //分片 sharding
     public void testShardKey(Jedis conn) {
         System.out.println("\n----- testShardKey -----");
 
         String base = "test";
-        assert "test:0".equals(shardKey(base, "1", 2, 2));
-        assert "test:1".equals(shardKey(base, "125", 1000, 100));
+        System.out.println( "test:0".equals(shardKey(base, "1", 2, 2)));
+        System.out.println( "test:1".equals(shardKey(base, "125", 1000, 100)));
 
         for (int i = 0; i < 50; i++) {
             String key = shardKey(base, "hello:" + i, 1000, 100);
             String[] parts = key.split(":");
-            assert Integer.parseInt(parts[parts.length - 1]) < 20;
+            System.out.println( Integer.parseInt(parts[parts.length - 1]) < 20);
 
             key = shardKey(base, String.valueOf(i), 1000, 100);
             parts = key.split(":");
-            assert Integer.parseInt(parts[parts.length - 1]) < 10;
+            System.out.println( Integer.parseInt(parts[parts.length - 1]) < 10);
         }
     }
 
@@ -96,9 +97,9 @@ public class Chapter09 {
         for (int i = 0; i < 50; i++) {
             String istr = String.valueOf(i);
             shardHset(conn, "test", "keyname:" + i, istr, 1000, 100);
-            assert istr.equals(shardHget(conn, "test", "keyname:" + i, 1000, 100));
+            System.out.println( istr.equals(shardHget(conn, "test", "keyname:" + i, 1000, 100)));
             shardHset(conn, "test2", istr, istr, 1000, 100);
-            assert istr.equals(shardHget(conn, "test2", istr, 1000, 100));
+            System.out.println( istr.equals(shardHget(conn, "test2", istr, 1000, 100)));
         }
     }
 
@@ -108,7 +109,7 @@ public class Chapter09 {
         for (int i = 0; i < 50; i++) {
             shardSadd(conn, "testx", String.valueOf(i), 50, 50);
         }
-        assert conn.scard("testx:0") + conn.scard("testx:1") == 50;
+        System.out.println( conn.scard("testx:0") + conn.scard("testx:1") == 50);
     }
 
     public void testUniqueVisitors(Jedis conn) {
