@@ -1,5 +1,6 @@
 package org.lingg.learn.redisInAction.mytest;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Transaction;
 import redis.clients.jedis.Tuple;
+import sun.java2d.pipe.AAShapePipe;
 
 import java.lang.reflect.Method;
 import java.util.Iterator;
@@ -135,6 +137,26 @@ public class RedisTest1 {
         // 返回 hashcode ，无论有没有重新hashcode方法，均与默认的方法 hashCode() 返回的代码一样
         System.out.println(System.identityHashCode("ss"));
         System.out.println("ss".hashCode());
+    }
+
+    @Test
+    public void testEvalAndEvalsha(){
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
+
+        //eval
+        String scripts = "return redis.call('setnx', KEYS[1], ARGV[1])";
+        conn.eval(scripts, 1, "aa", "bb");
+        System.out.println(conn.get("aa"));
+
+
+        //evalsha
+        String sha1Hex = DigestUtils.sha1Hex(scripts);
+        conn.evalsha(sha1Hex, 1, "nn", "mm");
+        System.out.println(conn.get("nn"));
+
+
+        conn.close();
     }
 
 }
