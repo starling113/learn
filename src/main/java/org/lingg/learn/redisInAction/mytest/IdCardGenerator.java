@@ -12,7 +12,7 @@ import java.util.Set;
 
 public class IdCardGenerator {
 
-    public static final Map<String, Integer> areaCode = new HashMap<String, Integer>();
+    public static final Map<String, Integer> areaCode = new HashMap<>();
 
     static {
         IdCardGenerator.areaCode.put("北京市", 110000);
