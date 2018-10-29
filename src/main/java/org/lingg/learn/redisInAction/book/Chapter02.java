@@ -10,17 +10,15 @@ import java.util.*;
 
 public class Chapter02 {
 
-    private static String redisHost = "192.168.163.130";
-    private static int redisDbIndex = 14;
 
-    public static final void main(String[] args)
+    public static void main(String[] args)
             throws InterruptedException {
         new Chapter02().run();
     }
 
     public void run() throws InterruptedException {
-        Jedis conn = new Jedis(redisHost);
-        conn.select(redisDbIndex);
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
 
 //        testLoginCookies(conn);
 //        testShopppingCartCookies(conn);
@@ -63,7 +61,7 @@ public class Chapter02 {
     }
 
     public void testShopppingCartCookies(Jedis conn) throws InterruptedException {
-        System.out.println("\n----- testShopppingCartCookies -----");
+        System.out.println("\n----- test Shoppping Cart Cookies -----");
         String token = UUID.randomUUID().toString();
 
         System.out.println("We'll refresh our session...");
@@ -101,7 +99,7 @@ public class Chapter02 {
 
     public void testCacheRows(Jedis conn)
             throws InterruptedException {
-        System.out.println("\n----- testCacheRows -----");
+        System.out.println("\n----- test Cache Rows -----");
         System.out.println("First, let's schedule caching of itemX every 5 seconds");
         scheduleRowCache(conn, "itemX", 5);
         System.out.println("Our schedule looks like:");
@@ -176,6 +174,12 @@ public class Chapter02 {
         System.err.println("http://test.com/?item=itemX&_=1234536  canCache :" + canCache(conn, "http://test.com/?item=itemX&_=1234536"));
     }
 
+    /**
+     * 返回token对应的用户
+     * @param conn
+     * @param token
+     * @return 对应的用户名
+     */
     public String checkToken(Jedis conn, String token) {
         return conn.hget("login:", token);
     }
@@ -280,8 +284,8 @@ public class Chapter02 {
         private boolean quit;
 
         public CleanSessionsThread(int limit) {
-            this.conn = new Jedis(redisHost);
-            this.conn.select(redisDbIndex);
+            this.conn = new Jedis(RedisConst.redisHost);
+            this.conn.select(RedisConst.redisDbIndex);
             this.limit = limit;
         }
 
@@ -305,7 +309,7 @@ public class Chapter02 {
                 Set<String> tokenSet = conn.zrange("recent:", 0, endIndex - 1);
                 String[] tokens = tokenSet.toArray(new String[tokenSet.size()]);
 
-                ArrayList<String> sessionKeys = new ArrayList<String>();
+                ArrayList<String> sessionKeys = new ArrayList<>();
                 for (String token : tokens) {
                     sessionKeys.add("viewed:" + token);
                 }
@@ -323,8 +327,8 @@ public class Chapter02 {
         private boolean quit;
 
         public CleanFullSessionsThread(int limit) {
-            this.conn = new Jedis(redisHost);
-            this.conn.select(redisDbIndex);
+            this.conn = new Jedis(RedisConst.redisHost);
+            this.conn.select(RedisConst.redisDbIndex);
             this.limit = limit;
         }
 
@@ -366,8 +370,8 @@ public class Chapter02 {
         private boolean quit;
 
         public CacheRowsThread() {
-            this.conn = new Jedis(redisHost);
-            this.conn.select(redisDbIndex);
+            this.conn = new Jedis(RedisConst.redisHost);
+            this.conn.select(RedisConst.redisDbIndex);
         }
 
         public void quit() {

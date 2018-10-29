@@ -6,8 +6,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
- * 方法类
- *
+ * 用反射的方式获取父类中的所有属性和方法
+ *  https://blog.csdn.net/zs064811/article/details/52690198
  * @author syh
  */
 

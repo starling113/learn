@@ -15,8 +15,8 @@ public class Chapter01 {
     }
 
     public void run() {
-        Jedis conn = new Jedis("192.168.163.130");
-        conn.select(15); // select db0-15
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex); // select db0-15
 
         String articleId = postArticle(conn, "username", "A title", "http://www.google.com");
         System.out.println("We posted a new article with id: " + articleId);
