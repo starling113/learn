@@ -1,4 +1,4 @@
-package org.lingg.learn.pattern.proxy.decorator;
+package org.lingg.learn.pattern.decorator;
 
 public class Client
 {
