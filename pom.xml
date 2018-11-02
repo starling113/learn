@@ -7,7 +7,8 @@
     <groupId>org.lingg</groupId>
     <artifactId>learn</artifactId>
     <version>0.0.0.1-SNAPSHOT</version>
-    <packaging>war</packaging>
+
+    <packaging>pom</packaging>
 
     <name>learn Maven Webapp</name>
     <!-- FIXME change it to the project's website -->
@@ -19,6 +20,18 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <name>Deploy Server</name>
+            <url>http://192.168.163.129:8081/nexus/content/repositories/thirdparty/</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <url>http://192.168.163.129:8081/nexus/content/repositories/thirdparty/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -26,6 +39,14 @@
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>27.0-jre</version>
+        </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/io.netty/netty -->
         <dependency>
