@@ -5,14 +5,15 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.test.TestingServer;
 
 public class TreeCacheDemo {
-    static final String connectionInfo = "192.168.181.129:2181,192.168.181.129:2182,192.168.181.129:2183";
+//    static final String connectionInfo = "192.168.181.129:2181,192.168.181.129:2182,192.168.181.129:2183";
     private static final String PATH = "/example/cache";
 
     public static void main(String[] args) throws Exception {
-//        TestingServer server = new TestingServer();
-        CuratorFramework client = CuratorFrameworkFactory.newClient(connectionInfo, new ExponentialBackoffRetry(1000, 3));
+        TestingServer server = new TestingServer();
+        CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), new ExponentialBackoffRetry(1000, 3));
         client.start();
         client.create().creatingParentsIfNeeded().forPath(PATH);
         TreeCache cache = new TreeCache(client, PATH);

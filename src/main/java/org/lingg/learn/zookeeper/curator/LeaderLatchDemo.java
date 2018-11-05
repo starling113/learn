@@ -31,13 +31,11 @@ public class LeaderLatchDemo// extends BaseConnectionInfo
 
                     @Override
                     public void isLeader() {
-                        // TODO Auto-generated method stub
                         System.out.println("I am Leader");
                     }
 
                     @Override
                     public void notLeader() {
-                        // TODO Auto-generated method stub
                         System.out.println("I am not Leader");
                     }
                 });

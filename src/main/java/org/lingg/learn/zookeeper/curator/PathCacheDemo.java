@@ -6,14 +6,15 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.test.TestingServer;
 
 public class PathCacheDemo {
-    static final String connectionInfo = "192.168.181.129:2181,192.168.181.129:2182,192.168.181.129:2183";
+//    static final String connectionInfo = "192.168.181.129:2181,192.168.181.129:2182,192.168.181.129:2183";
     private static final String PATH = "/example/pathCache";
 
     public static void main(String[] args) throws Exception {
-//        TestingServer server = new TestingServer();
-        CuratorFramework client = CuratorFrameworkFactory.newClient(connectionInfo, new ExponentialBackoffRetry(1000, 3));
+        TestingServer server = new TestingServer();
+        CuratorFramework client = CuratorFrameworkFactory.newClient(server.getConnectString(), new ExponentialBackoffRetry(1000, 3));
         client.start();
         PathChildrenCache cache = new PathChildrenCache(client, PATH, true);
         cache.start();
