@@ -18,33 +18,35 @@ public class HashMapTest {
 //
 //        System.out.println(map.get("bb"));
 
+        ExecutorService pool = Executors.newFixedThreadPool(3);
 
+        pool.submit(() -> {
 
-        ExecutorService pool = Executors.newFixedThreadPool(2);
-
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                Long key = 0L;
-                while (key < 9999999L) {
-                    map.put(key, key);
-                    key++;
-                }
-            }
-        });
-
-        pool.submit(new Runnable() {
-            @Override
-            public void run() {
-                while(true) {
-                    Long val = map.get(Long.valueOf(55));
-                    if (null==val || val != 55) {
-                        System.out.println("扩容，多线程冲突，key : 55 val :" + val);
+                    Long key = 0L;
+                    while (key < 9999999L) {
+                        map.put(key, key);
+                        key++;
                     }
                 }
+        );
+
+        pool.submit(() -> {
+                    while (true) {
+                        Long val = map.get(Long.valueOf(5));
+                        if (null == val || val != 5) {
+                            System.out.println("扩容，多线程冲突，key : 5 val :" + val);
+                        }
+                    }
+                }
+        );
+
+        pool.submit(() -> {
+            try {
+                Thread.sleep(2000L);
+                System.err.println(map.get(5));
+            } catch (Exception ex) {
+
             }
         });
-
-
     }
 }
