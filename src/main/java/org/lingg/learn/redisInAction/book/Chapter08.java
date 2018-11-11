@@ -1,6 +1,5 @@
 package org.lingg.learn.redisInAction.book;
 
-import org.springframework.data.redis.connection.jedis.JedisUtils;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Transaction;
@@ -140,7 +139,7 @@ public class Chapter08 {
 
     public String acquireLockWithTimeout(Jedis conn, String lockName, int acquireTimeout, int lockTimeout) {
         String id = UUID.randomUUID().toString();
-        lockName = "lock:" + lockName;
+        lockName = "concurrent:" + lockName;
 
         long end = System.currentTimeMillis() + (acquireTimeout * 1000);
         while (System.currentTimeMillis() < end) {
@@ -162,7 +161,7 @@ public class Chapter08 {
     }
 
     public boolean releaseLock(Jedis conn, String lockName, String identifier) {
-        lockName = "lock:" + lockName;
+        lockName = "concurrent:" + lockName;
         while (true) {
             conn.watch(lockName);
             if (identifier.equals(conn.get(lockName))) {

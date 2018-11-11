@@ -34,7 +34,7 @@ public class RedisTest1 {
 //    }
     @Test
     public void test1(){
-        Jedis conn = new Jedis("192.168.163.130");
+        Jedis conn = new Jedis("192.168.181.129");
         conn.zincrby("worker", -1, "tom");
 
         Set<Tuple> workers = conn.zrangeWithScores("worker", 0, -1);

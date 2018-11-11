@@ -112,8 +112,8 @@ public class Chapter06 {
 
     public void testDistributedLocking(Jedis conn) throws InterruptedException {
         System.out.println("\n----- testDistributedLocking 分布式锁 -----");
-        conn.del("lock:testlock");
-        System.out.println("Getting an initial lock...");
+        conn.del("concurrent:testlock");
+        System.out.println("Getting an initial concurrent...");
         System.out.println("第一次获得锁：" + acquireLockWithTimeout(conn, "testlock", 1000, 1000));
         System.out.println("Got it!");
         System.out.println("Trying to get it again without releasing the first one...");
@@ -121,13 +121,13 @@ public class Chapter06 {
         System.out.println("Failed to get it!");
         System.out.println();
 
-        System.out.println("Waiting for the lock to timeout...");
+        System.out.println("Waiting for the concurrent to timeout...");
         Thread.sleep(2000);
-        System.out.println("Getting the lock again...");
+        System.out.println("Getting the concurrent again...");
         String lockId = acquireLockWithTimeout(conn, "testlock", 1000, 1000);
         System.out.println("等2秒再次获得锁 lockId = " + lockId);
         System.out.println("Got it!");
-        System.out.println("Releasing the lock...");
+        System.out.println("Releasing the concurrent...");
         System.out.println("释放锁" + lockId + " 结果：" + releaseLock(conn, "testlock", lockId));
         System.out.println("Released it...");
         System.out.println();
@@ -135,7 +135,7 @@ public class Chapter06 {
         System.out.println("Acquiring it again...");
         System.out.println("再次获得锁 lockId = " + acquireLockWithTimeout(conn, "testlock", 1000, 1000));
         System.out.println("Got it!");
-        conn.del("lock:testlock");
+        conn.del("concurrent:testlock");
     }
 
     public void testCountingSemaphore(Jedis conn) throws InterruptedException {
@@ -399,7 +399,7 @@ public class Chapter06 {
 
         long end = System.currentTimeMillis() + acquireTimeout;
         while (System.currentTimeMillis() < end) {
-            if (conn.setnx("lock:" + lockName, identifier) == 1) {
+            if (conn.setnx("concurrent:" + lockName, identifier) == 1) {
                 return identifier;
             }
 
@@ -424,7 +424,7 @@ public class Chapter06 {
      */
     public String acquireLockWithTimeout(Jedis conn, String lockName, long acquireTimeout, long lockTimeout) {
         String identifier = UUID.randomUUID().toString();
-        String lockKey = "lock:" + lockName;
+        String lockKey = "concurrent:" + lockName;
         int lockExpire = (int) (lockTimeout / 1000);  // 过期秒数
 
         long end = System.currentTimeMillis() + acquireTimeout;
@@ -444,12 +444,12 @@ public class Chapter06 {
             }
         }
 
-        // null indicates that the lock was not acquired
+        // null indicates that the concurrent was not acquired
         return null;
     }
 
     public boolean releaseLock(Jedis conn, String lockName, String identifier) {
-        String lockKey = "lock:" + lockName;
+        String lockKey = "concurrent:" + lockName;
 
         while (true) {
             conn.watch(lockKey);
@@ -576,9 +576,9 @@ public class Chapter06 {
     }
 
     public String sendMessage(Jedis conn, String chatId, String sender, String message) {
-        String identifier = acquireLock(conn, "chat:" + chatId);// 获得锁 "lock:chat:"+ chatId
+        String identifier = acquireLock(conn, "chat:" + chatId);// 获得锁 "concurrent:chat:"+ chatId
         if (identifier == null) {
-            throw new RuntimeException("Couldn't get the lock");
+            throw new RuntimeException("Couldn't get the concurrent");
         }
         try {
             long messageId = conn.incr("ids:" + chatId);
