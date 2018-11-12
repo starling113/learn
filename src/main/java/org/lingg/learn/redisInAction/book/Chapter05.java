@@ -46,12 +46,12 @@ public class Chapter05 {
         conn.select(RedisConst.redisDbIndex);
 
 //        testLogRecent(conn);
-//        testLogCommon(conn);
+        testLogCommon(conn);
 //        testCounters(conn);
 //        testStats(conn);
 //        testAccessTime(conn);
 //        testIpLookup(conn);
-        testIsUnderMaintenance(conn);
+//        testIsUnderMaintenance(conn);
 //        testConfig(conn);
     }
 
@@ -411,7 +411,7 @@ public class Chapter05 {
     public Jedis redisConnection(String component) {
         Jedis configConn = REDIS_CONNECTIONS.get("config");
         if (configConn == null) {
-            configConn = new Jedis("localhost");
+            configConn = new Jedis(RedisConst.redisHost);
             configConn.select(15);
             REDIS_CONNECTIONS.put("config", configConn);
         }
@@ -421,7 +421,7 @@ public class Chapter05 {
         Map<String, Object> config = getConfig(configConn, "redis", component);
 
         if (!config.equals(oldConfig)) {
-            Jedis conn = new Jedis("localhost");
+            Jedis conn = new Jedis(RedisConst.redisHost);
             if (config.containsKey("db")) {
                 conn.select(((Double) config.get("db")).intValue());
             }

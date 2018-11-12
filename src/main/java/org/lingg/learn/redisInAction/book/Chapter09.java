@@ -98,8 +98,8 @@ public class Chapter09 {
             String istr = String.valueOf(i);
             shardHset(conn, "test", "keyname:" + i, istr, 1000, 100);
             System.out.println( istr.equals(shardHget(conn, "test", "keyname:" + i, 1000, 100)));
-            shardHset(conn, "test2", istr, istr, 1000, 100);
-            System.out.println( istr.equals(shardHget(conn, "test2", istr, 1000, 100)));
+            shardHset(conn, "TestHashMap", istr, istr, 1000, 100);
+            System.out.println( istr.equals(shardHget(conn, "TestHashMap", istr, 1000, 100)));
         }
     }
 

@@ -12,20 +12,18 @@ import java.util.Set;
 
 public class Chapter04 {
 
-    private static String redisHost = "192.168.163.130";
-    private static int redisDbIndex = 14;
 
     public static final void main(String[] args) {
         new Chapter04().run();
     }
 
     public void run() {
-        Jedis conn = new Jedis(redisHost);
-        conn.select(redisDbIndex);
+        Jedis conn = new Jedis(RedisConst.redisHost);
+        conn.select(RedisConst.redisDbIndex);
 
         testListItem(conn, false);
-        testPurchaseItem(conn);
-        testBenchmarkUpdateToken(conn);
+//        testPurchaseItem(conn);
+//        testBenchmarkUpdateToken(conn);
     }
 
     public void testListItem(Jedis conn, boolean nested) {

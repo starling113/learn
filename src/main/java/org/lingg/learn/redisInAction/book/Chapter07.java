@@ -47,7 +47,7 @@ public class Chapter07 {
         conn.select(RedisConst.redisDbIndex);
         conn.flushDB();
 
-//        testIndexDocument(conn);
+        testIndexDocument(conn);
 //        testSetOperations(conn);
 //        testParseQuery(conn);
 //        testParseAndSearch(conn);
@@ -58,7 +58,7 @@ public class Chapter07 {
 //        testStringToScore(conn);
 //        testIndexAndTargetAds(conn);
 //        testIsQualifiedForJob(conn);
-        testIndexAndFindJobs(conn);
+//        testIndexAndFindJobs(conn);
     }
 
     public void testIndexDocument(Jedis conn) {
@@ -285,10 +285,10 @@ public class Chapter07 {
 
         Map<String, String> values = new HashMap<String, String>();
         values.put("test", "value");
-        values.put("test2", "other");
+        values.put("TestHashMap", "other");
         zaddString(conn, "key", values);
         assert conn.zscore("key", "test") == stringToScore("value");
-        assert conn.zscore("key", "test2") == stringToScore("other");
+        assert conn.zscore("key", "TestHashMap") == stringToScore("other");
     }
 
     public void testIndexAndTargetAds(Jedis conn) {
@@ -337,8 +337,8 @@ public class Chapter07 {
 
     public void testIndexAndFindJobs(Jedis conn) {
         System.out.println("\n----- testIndexAndFindJobs -----");
-        indexJob(conn, "test1", "q1", "q2", "q3");
-        indexJob(conn, "test2", "q1", "q3", "q4");
+        indexJob(conn, "TestIdentityHashMap", "q1", "q2", "q3");
+        indexJob(conn, "TestHashMap", "q1", "q3", "q4");
         indexJob(conn, "test3", "q1", "q3", "q5");
 
         System.out.println(findJobs(conn, "q1"));

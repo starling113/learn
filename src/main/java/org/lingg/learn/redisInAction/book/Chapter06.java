@@ -1,5 +1,6 @@
 package org.lingg.learn.redisInAction.book;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.junit.jupiter.api.Test;
@@ -26,11 +27,11 @@ public class Chapter06 {
 
 //        testAddUpdateContact(conn);
 //        testAddressBookAutocomplete(conn);
-//        testDistributedLocking(conn);// 分布式锁
-//        testCountingSemaphore(conn);// 信号量
+        testDistributedLocking(conn);// 分布式锁
+        testCountingSemaphore(conn);// 信号量
 //        testDelayedTasks(conn);
 //        testMultiRecipientMessaging(conn); // 多客户端接收消息
-        testFileDistribution(conn); // 文件分发
+//        testFileDistribution(conn); // 文件分发
     }
 
     public void testAddUpdateContact(Jedis conn) {
