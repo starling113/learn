@@ -5,7 +5,6 @@ import org.apache.curator.shaded.com.google.common.hash.BloomFilter;
 import org.apache.curator.shaded.com.google.common.hash.Funnels;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.Charset;
 import java.util.*;
 
 public class GuavaBloomTest {
