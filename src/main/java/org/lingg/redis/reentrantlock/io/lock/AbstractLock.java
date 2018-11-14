@@ -28,7 +28,6 @@ public abstract class AbstractLock implements Lock {
 		try {
 			lock(false, 0, null, false);
 		} catch (InterruptedException e) {
-			// TODO ignore
 		}
 	}
 	
@@ -53,7 +52,6 @@ public abstract class AbstractLock implements Lock {
 		try {
 			return lock(true, time, unit, false);
 		} catch (InterruptedException e) {
-			// TODO ignore
 		}
 		return false;
 	}
@@ -63,7 +61,6 @@ public abstract class AbstractLock implements Lock {
 	}
 
 	public void unlock() {
-		// TODO 
 		unlock0();
 	}
 

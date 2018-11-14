@@ -43,7 +43,6 @@ public class CyclicBarrierTest4 {
                 try {
                     cyclicBarrier.await(2000, TimeUnit.MILLISECONDS);
                 } catch (TimeoutException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             } catch (InterruptedException e) {

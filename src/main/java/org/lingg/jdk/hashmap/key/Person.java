@@ -5,7 +5,6 @@ public class Person {
     private int age;
 
     public Person(String name, int age) {
-        // TODO Auto-generated constructor stub
         this.age = age;
         this.name = name;
     }
@@ -28,7 +27,6 @@ public class Person {
 
     @Override
     public int hashCode() {
-        // TODO Auto-generated method stub
         final int prime = 33;
         int result = 1;
         result = prime * result + age;
@@ -38,7 +36,6 @@ public class Person {
 
     @Override
     public boolean equals(Object object) {
-        // TODO Auto-generated method stub
 
         if (this == object) {
             return true;
@@ -63,7 +60,6 @@ public class Person {
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
         return "Person [name=" + name + ", age=" + age + "]";
     }
 }
